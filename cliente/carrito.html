@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FERREMAS - Carrito de Compras</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body { 
+      font-family: 'Roboto', sans-serif; 
+    }
+  </style>
+</head>
+<body class="bg-gray-100 text-gray-800 flex flex-col min-h-screen">
+
+  <!-- Header para Cliente Logueado (Similar al Catálogo) -->
+  <header class="bg-white shadow-lg sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+      <a href="../index.html" class="text-3xl font-bold text-orange-600 hover:text-orange-700 transition-colors">FERREMAS</a>
+      <nav class="space-x-4 text-sm font-medium flex items-center">
+        <a href="catalogo.html" class="text-gray-700 hover:text-orange-600 transition-colors">Catálogo</a>
+        <a href="mis_pedidos.html" class="text-gray-700 hover:text-orange-600 transition-colors hidden md:inline">Mis Pedidos</a>
+        <a href="carrito.html" class="text-orange-600 font-semibold border-b-2 border-orange-600 transition-colors relative hidden md:inline">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
+          Carrito
+          <span id="cartItemCount" class="absolute -top-2 -right-2 bg-orange-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">0</span>
+        </a>
+        <div class="relative group">
+            <span id="nombreUsuario" class="text-gray-700 cursor-pointer hover:text-orange-600">Invitado</span>
+        </div>
+        <button id="btnLogout" class="px-4 py-2 bg-red-500 text-white rounded-lg shadow hover:bg-red-600 transition-colors">Cerrar Sesión</button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Contenido Principal - Carrito de Compras -->
+  <main class="flex-grow container mx-auto px-4 py-8">
+    <div class="bg-white shadow-xl rounded-lg p-6 md:p-8 animate-fade-in">
+      <h2 class="text-3xl font-bold text-orange-600 mb-8 border-b-2 border-orange-500 pb-2">Mi Carrito de Compras</h2>
+      
+      <div id="cartItemsContainer">
+        <!-- Los ítems del carrito se cargarán aquí -->
+        <p class="text-center text-gray-500 py-10">Tu carrito está vacío.</p>
+      </div>
+
+      <!-- Resumen del Pedido y Botón de Checkout -->
+      <div id="cartSummary" class="mt-8 pt-6 border-t border-gray-200 hidden">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-xl font-semibold text-gray-800">Total del Pedido:</h3>
+          <p id="cartTotalAmount" class="text-2xl font-bold text-orange-600">$0</p>
+        </div>
+        <button id="checkoutButton" class="w-full md:w-auto float-right bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-8 rounded-lg text-lg transition-colors">
+          Proceder al Pago
+        </button>
+        <div class="clear-both"></div>
+      </div>
+
+    </div>
+     <!-- Botón o enlace para volver al catálogo -->
+     <div class="mt-8 text-center">
+        <a href="catalogo.html" class="inline-block text-orange-600 hover:text-orange-700 font-semibold transition-colors">
+            &larr; Seguir Comprando
+        </a>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-gray-900 text-white py-6 mt-auto">
+    <div class="max-w-7xl mx-auto px-4 text-center">
+      <p class="text-sm">&copy; 2025 FERREMAS. Todos los derechos reservados.</p>
+    </div>
+  </footer>
+
+  <script>
+    // Configuración de Tailwind para animaciones personalizadas (si es necesaria)
+    tailwind.config = {
+      theme: {
+        extend: {
+          animation: {
+            'fade-in': 'fadeIn 1s ease-out',
+          },
+          keyframes: {
+            fadeIn: {
+              '0%': { opacity: 0 },
+              '100%': { opacity: 1 }
+            }
+          }
+        }
+      }
+    };
+
+    // --- Datos de Productos (Simulados - Necesarios para obtener detalles) ---
+    // En una aplicación real, estos detalles vendrían de la API si no se guardan completos en el carrito.
+    const todosLosProductosSimulados = [
+        { id: "P001", nombre: "Taladro Percutor Bosch Pro", sku: "BOSCH-TP-PRO-001", categoria: "herramientas", descripcion: "Máxima potencia y durabilidad para profesionales.", precioCLP: 129990, stock: 15, imagen: "../assets/taladro.jpg", alt: "Taladro Percutor Bosch Profesional", oferta: true },
+        { id: "P002", nombre: "Juego Destornilladores Stanley 6pz", sku: "STANLEY-DS-006", categoria: "manuales", descripcion: "Puntas magnéticas de cromo vanadio.", precioCLP: 24990, stock: 30, imagen: "../assets/Jgo.-de-destornilladores-STANLEY-6-pzas.-STHT69170-1.png", alt: "Juego de Destornilladores Stanley" },
+        { id: "P003", nombre: "Cinta Métrica Profesional 5m", sku: "PRO-CM-005", categoria: "manuales", descripcion: "Carcasa ABS de alta resistencia.", precioCLP: 9990, stock: 50, imagen: "../assets/d_nq_np_2x_820651-mlc40854154766_022020-f-8cff2697-107e-4579-baa7-b830d0424250.jpg", alt: "Cinta Métrica Profesional 5m" },
+        { id: "P004", nombre: "Martillo Carpintero Mango Fibra", sku: "PRO-MART-001", categoria: "manuales", descripcion: "Cabeza de acero forjado, mango de fibra.", precioCLP: 12990, stock: 22, imagen: "../assets/martillo.png", alt: "Martillo Profesional Mango Fibra" },
+        { id: "P005", nombre: "Esmeril Angular 4 1/2 Makita", sku: "MAKITA-EA-004", categoria: "herramientas", descripcion: "Potente motor de 720W.", precioCLP: 75500, stock: 8, imagen: "../assets/esmeril_angular.jpg", alt: "Esmeril Angular Makita", oferta: true },
+        { id: "P006", nombre: "Guantes de Seguridad Anticorte", sku: "SEG-GUAN-010", categoria: "seguridad", descripcion: "Nivel 5 de resistencia al corte.", precioCLP: 8990, stock: 100, imagen: "../assets/guantes_seguridad.jpg", alt: "Guantes de Seguridad Anticorte" }
+    ];
+
+    document.addEventListener('DOMContentLoaded', function() {
+      // --- Lógica del Header (Cerrar Sesión, Nombre Usuario, Contador Carrito) ---
+      const nombreUsuarioEl = document.getElementById('nombreUsuario');
+      const btnLogout = document.getElementById('btnLogout');
+      const cartItemCountEl = document.getElementById('cartItemCount');
+      const userName = localStorage.getItem('userName');
+      const authToken = localStorage.getItem('authToken');
+
+      if (authToken && userName) {
+        if (nombreUsuarioEl) nombreUsuarioEl.textContent = `Hola, ${userName}`;
+        if (btnLogout) btnLogout.classList.remove('hidden');
+      } else {
+        if (nombreUsuarioEl) nombreUsuarioEl.textContent = 'Invitado';
+        if (btnLogout) btnLogout.classList.add('hidden');
+      }
+
+      if (btnLogout) {
+        btnLogout.addEventListener('click', function() {
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('userRole');
+          localStorage.removeItem('userName');
+          localStorage.removeItem('ferremasCart'); // Limpiar carrito al cerrar sesión
+          window.location.href = '../login.html';
+        });
+      }
+
+      // --- Lógica para Cargar y Mostrar el Carrito ---
+      const cartItemsContainer = document.getElementById('cartItemsContainer');
+      const cartSummaryEl = document.getElementById('cartSummary');
+      const cartTotalAmountEl = document.getElementById('cartTotalAmount');
+
+      function getCart() {
+        return JSON.parse(localStorage.getItem('ferremasCart')) || [];
+      }
+
+      function saveCart(cart) {
+        localStorage.setItem('ferremasCart', JSON.stringify(cart));
+        updateCartCount(cart);
+        renderCartItems(); // Volver a renderizar para reflejar cambios
+      }
+
+      function updateCartCount(cart) {
+        const currentCart = cart || getCart();
+        if (cartItemCountEl) {
+          cartItemCountEl.textContent = currentCart.reduce((total, item) => total + item.quantity, 0);
+        }
+      }
+
+      function renderCartItems() {
+        const cart = getCart();
+        updateCartCount(cart);
+
+        if (cart.length === 0) {
+          cartItemsContainer.innerHTML = '<p class="text-center text-gray-500 py-10">Tu carrito está vacío.</p>';
+          cartSummaryEl.classList.add('hidden');
+          return;
+        }
+
+        cartItemsContainer.innerHTML = ''; // Limpiar
+        let totalPedido = 0;
+
+        cart.forEach(item => {
+          const productDetails = todosLosProductosSimulados.find(p => p.id === item.id);
+          if (!productDetails) return; // Producto no encontrado en nuestra lista simulada
+
+          const itemTotal = productDetails.precioCLP * item.quantity;
+          totalPedido += itemTotal;
+
+          const itemHTML = `
+            <div class="flex items-center gap-4 border-b border-gray-200 py-4 cart-item" data-product-id="${item.id}">
+              <img src="${productDetails.imagen}" alt="${productDetails.alt}" class="w-20 h-20 object-contain rounded-md border">
+              <div class="flex-grow">
+                <h4 class="text-lg font-semibold text-gray-800">${productDetails.nombre}</h4>
+                <p class="text-sm text-gray-500">SKU: ${productDetails.sku}</p>
+                <p class="text-sm text-orange-600 font-semibold">$${productDetails.precioCLP.toLocaleString('es-CL')}</p>
+              </div>
+              <div class="flex items-center gap-2">
+                <button class="px-2 py-1 border rounded hover:bg-gray-200 decrease-quantity" ${item.quantity <= 1 ? 'disabled' : ''}>-</button>
+                <input type="number" value="${item.quantity}" min="1" max="${productDetails.stock}" class="w-12 text-center border rounded item-quantity">
+                <button class="px-2 py-1 border rounded hover:bg-gray-200 increase-quantity" ${item.quantity >= productDetails.stock ? 'disabled' : ''}>+</button>
+              </div>
+              <p class="text-lg font-semibold text-gray-800 w-28 text-right">$${itemTotal.toLocaleString('es-CL')}</p>
+              <button class="text-red-500 hover:text-red-700 remove-item">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+          `;
+          cartItemsContainer.innerHTML += itemHTML;
+        });
+
+        cartTotalAmountEl.textContent = `$${totalPedido.toLocaleString('es-CL')}`;
+        cartSummaryEl.classList.remove('hidden');
+      }
+
+      // --- Manejo de Eventos del Carrito (Modificar cantidad, Eliminar) ---
+      cartItemsContainer.addEventListener('click', function(e) {
+        const target = e.target;
+        const cartItemDiv = target.closest('.cart-item');
+        if (!cartItemDiv) return;
+
+        const productId = cartItemDiv.dataset.productId;
+        let cart = getCart();
+        const itemIndex = cart.findIndex(item => item.id === productId);
+        if (itemIndex === -1) return;
+
+        if (target.classList.contains('remove-item') || target.closest('.remove-item')) {
+          cart.splice(itemIndex, 1);
+        } else if (target.classList.contains('increase-quantity')) {
+          cart[itemIndex].quantity++;
+        } else if (target.classList.contains('decrease-quantity')) {
+          if (cart[itemIndex].quantity > 1) {
+            cart[itemIndex].quantity--;
+          }
+        }
+        saveCart(cart);
+      });
+
+      cartItemsContainer.addEventListener('change', function(e) {
+          if (e.target.classList.contains('item-quantity')) {
+              const cartItemDiv = e.target.closest('.cart-item');
+              const productId = cartItemDiv.dataset.productId;
+              let newQuantity = parseInt(e.target.value);
+              
+              let cart = getCart();
+              const itemIndex = cart.findIndex(item => item.id === productId);
+              if (itemIndex === -1) return;
+
+              const productDetails = todosLosProductosSimulados.find(p => p.id === productId);
+              if (newQuantity < 1) newQuantity = 1;
+              if (newQuantity > productDetails.stock) newQuantity = productDetails.stock;
+              
+              cart[itemIndex].quantity = newQuantity;
+              e.target.value = newQuantity; // Actualizar el input por si se corrigió el valor
+              saveCart(cart);
+          }
+      });
+
+      // --- Botón Proceder al Pago (Simulación) ---
+      const checkoutButton = document.getElementById('checkoutButton');
+      if (checkoutButton) {
+        checkoutButton.addEventListener('click', function() {
+          // TODO: En una aplicación real, aquí se redirigiría a una pasarela de pago
+          // o se enviaría la orden al backend para su procesamiento.
+          alert('Simulación: Procediendo al pago. ¡Gracias por tu compra!');
+          // Opcional: Limpiar el carrito después del "pago"
+          // saveCart([]); 
+        });
+      }
+
+      // Carga inicial del carrito
+      renderCartItems();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FERREMAS - Catálogo Cliente</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body { 
+      font-family: 'Roboto', sans-serif; 
+      scroll-behavior: smooth;
+    }
+    .product-card:hover .add-to-cart-btn {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    /* Estilos para el contenedor de toasts */
+    #toast-container {
+      position: fixed;
+      top: 1.5rem; /* 24px */
+      right: 1.5rem; /* 24px */
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem; /* 12px */
+    }
+    .toast {
+      padding: 1rem 1.5rem; /* 16px 24px */
+      border-radius: 0.5rem; /* 8px */
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      opacity: 0;
+      transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+      transform: translateX(100%); /* Inicia fuera de la pantalla a la derecha */
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(0);
+    }
+    .toast.success {
+      background-color: #48bb78; /* green-500 */
+      color: white;
+    }
+    .toast.error {
+      background-color: #f56565; /* red-500 */
+      color: white;
+    }
+    .toast.info {
+      background-color: #4299e1; /* blue-500 */
+      color: white;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 text-gray-800 flex flex-col min-h-screen">
+
+  <!-- Header para Cliente Logueado -->
+  <header class="bg-white shadow-lg sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+      <a href="../index.html" class="text-3xl font-bold text-orange-600 hover:text-orange-700 transition-colors">FERREMAS</a>
+      <nav class="space-x-4 text-sm font-medium flex items-center">
+        <a href="#catalogoProductos" class="text-gray-700 hover:text-orange-600 transition-colors">Catálogo</a>
+        <a href="mis_pedidos.html" class="text-gray-700 hover:text-orange-600 transition-colors hidden md:inline">Mis Pedidos</a>
+        <a href="carrito.html" class="text-gray-700 hover:text-orange-600 transition-colors relative hidden md:inline">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
+          <span id="cartItemCount" class="absolute -top-2 -right-2 bg-orange-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">0</span>
+        </a>
+        <div class="relative group">
+            <span id="nombreUsuario" class="text-gray-700 cursor-pointer hover:text-orange-600">Invitado</span>
+            <!-- Podríamos añadir un dropdown aquí con más opciones si el usuario está logueado -->
+        </div>
+        <button id="btnLogout" class="px-4 py-2 bg-red-500 text-white rounded-lg shadow hover:bg-red-600 transition-colors">Cerrar Sesión</button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Contenido Principal - Vista Cliente -->
+  <main class="flex-grow container mx-auto px-4 py-8">
+    <!-- Hero Section / Banner de Bienvenida -->
+    <section class="bg-gradient-to-r from-orange-500 to-orange-600 text-white py-12 px-6 md:px-10 rounded-xl shadow-2xl mb-12 animate-fade-in">
+      <h2 id="saludoCliente" class="text-4xl font-bold mb-3">¡Bienvenido a FERREMAS!</h2>
+      <p class="text-lg text-orange-100 mb-6">
+        Tu tienda de confianza para herramientas y materiales de construcción. Explora nuestro catálogo y encuentra lo mejor para tus proyectos.
+      </p>
+      <a href="#catalogoProductos" class="inline-block bg-white text-orange-600 font-semibold px-8 py-3 rounded-lg shadow-md hover:bg-gray-100 transition-colors">
+        Ver Productos
+      </a>
+    </section>
+
+    <div class="bg-white shadow-xl rounded-lg p-6 md:p-8">
+      <!-- Sección de Búsqueda y Filtros Mejorada -->
+      <div class="mb-10 p-6 bg-gray-50 rounded-xl border border-gray-200">
+        <h3 class="text-2xl font-semibold text-gray-800 mb-4">Encuentra lo que necesitas</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+          <input type="text" id="searchInput" placeholder="Buscar por nombre, marca, SKU..." class="md:col-span-2 w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-shadow">
+          <select id="categoryFilter" class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+            <option value="">Todas las Categorías</option>
+            <option value="herramientas">Herramientas Eléctricas</option>
+            <option value="manuales">Herramientas Manuales</option>
+            <option value="seguridad">Seguridad Industrial</option>
+            <option value="materiales">Materiales de Construcción</option>
+            <!-- TODO: Estas categorías deberían cargarse dinámicamente -->
+          </select>
+          <!-- El botón de búsqueda explícito se puede omitir si la búsqueda es en tiempo real o al presionar Enter -->
+        </div>
+      </div>
+
+      <!-- Listado de Productos (Placeholder Dinámico) -->
+      <section id="catalogoProductos">
+        <h3 class="text-3xl font-semibold text-gray-800 mb-8 border-b-2 border-orange-500 pb-2">Nuestro Catálogo</h3>
+        <div id="productosClienteContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+          <!-- Las tarjetas de producto se cargarán aquí (similar a index.html pero con más detalles o acciones) -->
+          <div class="p-4 border rounded-lg text-center text-gray-500">
+            Cargando productos...
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-gray-900 text-white py-6 mt-auto">
+    <div class="max-w-7xl mx-auto px-4 text-center">
+      <p class="text-sm">&copy; 2025 FERREMAS. Todos los derechos reservados.</p>
+      <p class="text-xs mt-1">Diseñado con <span class="text-orange-400">&hearts;</span> para tus proyectos.</p>
+    </div>
+  </footer>
+
+  <!-- Contenedor para Toasts/Notificaciones -->
+  <div id="toast-container"></div>
+
+  <script>
+    // Configuración de Tailwind para animaciones personalizadas (como animate-fade-in)
+    // Copiado de index.html para asegurar que 'animate-fade-in' funcione.
+    tailwind.config = {
+      theme: {
+        extend: {
+          animation: {
+            'fade-in': 'fadeIn 1s ease-out',
+          },
+          keyframes: {
+            fadeIn: {
+              '0%': { opacity: 0 },
+              '100%': { opacity: 1 }
+            }
+          }
+        }
+      }
+    };
+
+    // --- Variables Globales y Selectores de DOM ---
+    document.addEventListener('DOMContentLoaded', function() {
+      const nombreUsuarioEl = document.getElementById('nombreUsuario');
+      const saludoClienteEl = document.getElementById('saludoCliente');
+      const btnLogout = document.getElementById('btnLogout');
+
+      // Simular obtención de datos del usuario desde localStorage (como se guardaría en login.html)
+      const userName = localStorage.getItem('userName');
+      const authToken = localStorage.getItem('authToken');
+
+      if (authToken && userName) { // Solo mostrar como logueado si hay token y nombre
+        if (nombreUsuarioEl) nombreUsuarioEl.textContent = `Hola, ${userName}`;
+        if (saludoClienteEl) saludoClienteEl.textContent = `¡Bienvenido de nuevo, ${userName}!`;
+        if (btnLogout) btnLogout.classList.remove('hidden');
+      } else {
+        // Si no hay nombre de usuario, podría ser un acceso no autorizado o un error.
+        // Por ahora, redirigimos al login. En una app real, el backend protegería esta ruta.
+        if (nombreUsuarioEl) nombreUsuarioEl.textContent = 'Invitado';
+        if (saludoClienteEl) saludoClienteEl.textContent = '¡Bienvenido a FERREMAS!'; // Ajustado para que no muestre nombre si no está logueado
+        if (btnLogout) btnLogout.classList.add('hidden'); // Ocultar botón de logout si no está logueado
+        // Considerar redirigir a login si esta página requiere autenticación obligatoria
+        // window.location.href = '../login.html'; 
+      }
+
+      if (btnLogout) {
+        btnLogout.addEventListener('click', function() {
+          // Limpiar datos de sesión simulados
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('userRole');
+          localStorage.removeItem('userName');
+          
+          // Redirigir a la página de inicio o login
+          window.location.href = '../login.html';
+        });
+      }
+
+      // --- Lógica del Carrito (replicada de carrito.html para consistencia) ---
+      const cartItemCountEl_Header = document.getElementById('cartItemCount'); // Renombrado para evitar conflicto si hay otro
+
+      function getCartFromStorage() {
+        return JSON.parse(localStorage.getItem('ferremasCart')) || [];
+      }
+
+      function saveCartToStorage(cart) {
+        localStorage.setItem('ferremasCart', JSON.stringify(cart));
+        updateCartCountInHeader(cart);
+      }
+
+      function updateCartCountInHeader(cart) {
+        const currentCart = cart || getCartFromStorage();
+        if (cartItemCountEl_Header) {
+          // Contar el número total de unidades en el carrito
+          cartItemCountEl_Header.textContent = currentCart.reduce((total, item) => total + item.quantity, 0);
+        }
+      }
+
+      // Actualizar el contador del carrito en el header al cargar la página
+      updateCartCountInHeader();
+      // --- Fin Lógica del Carrito ---
+
+      // --- Lógica para Toasts/Notificaciones ---
+      const toastContainer = document.getElementById('toast-container');
+
+      function showToast(message, type = 'info', duration = 3000) {
+        if (!toastContainer) return;
+
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`; // Aplica clase de tipo (success, error, info)
+        toast.textContent = message;
+        
+        toastContainer.appendChild(toast);
+
+        // Forzar reflow para que la transición de entrada funcione
+        requestAnimationFrame(() => {
+          toast.classList.add('show');
+        });
+
+        setTimeout(() => {
+          toast.classList.remove('show');
+          setTimeout(() => toast.remove(), 300); // Esperar a que termine la transición de salida
+        }, duration);
+      }
+      // --- Fin Lógica para Toasts ---
+
+      // --- Datos de Productos (Simulados) ---
+      // TODO: Estos datos vendrán de la API del backend
+      let todosLosProductos = [
+         {
+            id: "P001",
+            nombre: "Taladro Percutor Bosch Pro",
+            sku: "BOSCH-TP-PRO-001",
+            categoria: "herramientas",
+            descripcion: "Máxima potencia y durabilidad para profesionales. Motor de 850W, mandril de 13mm.",
+            precioCLP: 129990,
+            stock: 15,
+            imagen: "../assets/taladro.jpg",
+            alt: "Taladro Percutor Bosch Profesional",
+            oferta: true
+          },
+          {
+            id: "P002",
+            nombre: "Juego Destornilladores Stanley 6pz",
+            sku: "STANLEY-DS-006",
+            categoria: "manuales",
+            descripcion: "Puntas magnéticas de cromo vanadio. Mangos ergonómicos para mayor comodidad.",
+            precioCLP: 24990,
+            stock: 30,
+            imagen: "../assets/Jgo.-de-destornilladores-STANLEY-6-pzas.-STHT69170-1.png",
+            alt: "Juego de Destornilladores Stanley"
+          },
+          {
+            id: "P003",
+            nombre: "Cinta Métrica Profesional 5m",
+            sku: "PRO-CM-005",
+            categoria: "manuales",
+            descripcion: "Carcasa ABS de alta resistencia, cinta de acero con recubrimiento nylon y freno.",
+            precioCLP: 9990,
+            stock: 50,
+            imagen: "../assets/d_nq_np_2x_820651-mlc40854154766_022020-f-8cff2697-107e-4579-baa7-b830d0424250.jpg",
+            alt: "Cinta Métrica Profesional 5m"
+          },
+          {
+            id: "P004",
+            nombre: "Martillo Carpintero Mango Fibra",
+            sku: "PRO-MART-001",
+            categoria: "manuales",
+            descripcion: "Cabeza de acero forjado, mango de fibra de vidrio antivibración. Ideal para trabajos pesados.",
+            precioCLP: 12990,
+            stock: 22,
+            imagen: "../assets/martillo.png", // Asegúrate que esta imagen exista
+            alt: "Martillo Profesional Mango Fibra"
+          },
+          {
+            id: "P005",
+            nombre: "Esmeril Angular 4 1/2 Makita",
+            sku: "MAKITA-EA-004",
+            categoria: "herramientas",
+            descripcion: "Potente motor de 720W, diseño compacto y ligero para fácil manejo. Incluye disco.",
+            precioCLP: 75500,
+            stock: 8,
+            imagen: "../assets/esmeril_angular.jpg", // Crear o usar una imagen placeholder
+            alt: "Esmeril Angular Makita",
+            oferta: true
+          },
+          {
+            id: "P006",
+            nombre: "Guantes de Seguridad Anticorte",
+            sku: "SEG-GUAN-010",
+            categoria: "seguridad",
+            descripcion: "Nivel 5 de resistencia al corte. Palma recubierta de poliuretano para mejor agarre.",
+            precioCLP: 8990,
+            stock: 100,
+            imagen: "../assets/guantes_seguridad.jpg", // Crear o usar una imagen placeholder
+            alt: "Guantes de Seguridad Anticorte"
+          }
+      ];
+
+      const productosContainer = document.getElementById('productosClienteContainer');
+      const searchInput = document.getElementById('searchInput');
+      const categoryFilter = document.getElementById('categoryFilter');
+
+      function renderizarProductos(productosAMostrar) {
+        if (!productosContainer) return;
+        productosContainer.innerHTML = ''; 
+
+        if (productosAMostrar.length === 0) {
+          productosContainer.innerHTML = '<p class="col-span-full text-center text-gray-600 py-10 text-xl">No se encontraron productos que coincidan con tu búsqueda.</p>';
+          return;
+        }
+
+        productosAMostrar.forEach(producto => {
+            const productoHTML = `
+              <div class="product-card group bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col overflow-hidden relative">
+                ${producto.oferta ? '<span class="absolute top-0 right-0 bg-red-500 text-white text-xs font-semibold px-3 py-1 rounded-bl-lg z-10">OFERTA</span>' : ''}
+                <div class="h-56 overflow-hidden">
+                    <img src="${producto.imagen}" alt="${producto.alt}" class="w-full h-full object-contain p-4 transition-transform duration-300 group-hover:scale-105">
+                </div>
+                <div class="p-5 flex-grow flex flex-col">
+                  <h4 class="font-semibold text-lg text-gray-900 mb-1 truncate" title="${producto.nombre}">${producto.nombre}</h4>
+                  <p class="text-xs text-gray-500 mb-2">SKU: ${producto.sku}</p>
+                  <p class="text-sm text-gray-600 mb-3 h-12 overflow-hidden">${producto.descripcion.substring(0, 70)}${producto.descripcion.length > 70 ? '...' : ''}</p>
+                  
+                  <div class="mt-auto">
+                    <p class="font-bold text-orange-600 text-2xl mb-3">$${producto.precioCLP.toLocaleString('es-CL')}</p>
+                    <p class="text-xs ${producto.stock > 0 ? 'text-green-600' : 'text-red-600'} mb-3">
+                      ${producto.stock > 0 ? `Disponible (${producto.stock} unidades)` : 'Agotado'}
+                    </p>
+                    <div class="flex gap-2">
+                        <button data-product-id="${producto.id}" class="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2 px-3 rounded-lg text-sm flex items-center justify-center gap-1 add-to-cart-btn opacity-0 transform translate-y-2 transition-all duration-300 ease-out">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                            Añadir
+                        </button>
+                        <button data-product-id="${producto.id}" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2 px-3 rounded-lg text-sm transition-colors view-details-btn">
+                            Ver Detalle
+                        </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            `;
+            productosContainer.innerHTML += productoHTML;
+          });
+        }
+      
+      function filtrarYBuscarProductos() {
+        const terminoBusqueda = searchInput.value.toLowerCase();
+        const categoriaSeleccionada = categoryFilter.value;
+
+        const productosFiltrados = todosLosProductos.filter(producto => {
+          const coincideBusqueda = producto.nombre.toLowerCase().includes(terminoBusqueda) ||
+                                   producto.sku.toLowerCase().includes(terminoBusqueda) ||
+                                   producto.descripcion.toLowerCase().includes(terminoBusqueda);
+          const coincideCategoria = categoriaSeleccionada === "" || producto.categoria === categoriaSeleccionada;
+          return coincideBusqueda && coincideCategoria;
+        });
+        renderizarProductos(productosFiltrados);
+      }
+
+      // Event Listeners para filtros y búsqueda
+      if(searchInput) searchInput.addEventListener('input', filtrarYBuscarProductos); 
+      if(categoryFilter) categoryFilter.addEventListener('change', filtrarYBuscarProductos);
+
+      // Carga inicial de productos
+      renderizarProductos(todosLosProductos);
+
+      // Delegación de eventos para botones de productos (Añadir al carrito, Ver detalle)
+      if (productosContainer) {
+        productosContainer.addEventListener('click', function(e) {
+          const target = e.target.closest('button');
+          if (!target) return;
+
+          const productId = target.dataset.productId;
+          if (target.classList.contains('add-to-cart-btn')) {
+            // Lógica real para añadir al carrito
+            let cart = getCartFromStorage();
+            const existingItemIndex = cart.findIndex(item => item.id === productId);
+            const productDetails = todosLosProductos.find(p => p.id === productId); // Obtener detalles del producto
+
+            if (!productDetails) {
+                showToast('Error: Producto no encontrado.', 'error');
+                return;
+            }
+
+            if (existingItemIndex > -1) {
+              // Si el producto ya está en el carrito, incrementar cantidad si hay stock
+              if (cart[existingItemIndex].quantity < productDetails.stock) {
+                cart[existingItemIndex].quantity++;
+                saveCartToStorage(cart);
+                showToast(`"${productDetails.nombre}" añadido al carrito. Cantidad: ${cart[existingItemIndex].quantity}`, 'success');
+              } else {
+                showToast('No puedes añadir más unidades (stock máximo alcanzado).', 'info');
+                return;
+              }
+            } else {
+              // Si el producto no está, añadirlo con cantidad 1 (si hay stock)
+              if (productDetails.stock > 0) { cart.push({ id: productId, quantity: 1 }); saveCartToStorage(cart); showToast(`"${productDetails.nombre}" añadido al carrito.`, 'success');}
+              else { showToast('Este producto está agotado.', 'error'); return; }
+            }
+
+          } else if (target.classList.contains('view-details-btn')) {
+            console.log(`Ver detalles producto ID: ${productId}`);
+            // Guardar el ID del producto seleccionado para que la página de detalle lo lea
+            localStorage.setItem('selectedProductId', productId);
+            window.location.href = 'detalle_producto.html'; // Redirigir a la página de detalle
+            // La alerta original no se mostrará debido a la redirección, así que la comento o elimino.
+            // alert(`Ver detalles del producto ${productId} (simulación). Próximamente: página de detalle.`);
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>
