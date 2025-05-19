@@ -65,7 +65,11 @@
   </footer>
 
   <script>
-    document.getElementById('registroForm').addEventListener('submit', function(e) {
+    const API_BASE_URL = 'http://127.0.0.1:8000'; // URL base de tu backend
+    const registroForm = document.getElementById('registroForm');
+    const mensajeEl = document.getElementById('mensaje');
+
+    registroForm.addEventListener('submit', async function(e) { // Convertir a async
       e.preventDefault();
 
       const nombre = document.getElementById('nombre').value.trim();
@@ -73,9 +77,10 @@
       const correo = document.getElementById('correo').value.trim();
       const contrasena = document.getElementById('contrasena').value;
       const confirmarContrasena = document.getElementById('confirmarContrasena').value;
-      const mensajeEl = document.getElementById('mensaje');
 
       mensajeEl.classList.add('hidden'); // Ocultar mensaje previo
+      mensajeEl.classList.remove('text-red-600', 'text-green-600');
+
 
       if (!nombre || !apellido || !correo || !contrasena || !confirmarContrasena) {
         mensajeEl.textContent = 'Por favor completa todos los campos.';
@@ -100,18 +105,62 @@
         return;
       }
 
-      // --- Simulación de Registro Exitoso ---
-      // TODO: Implementar lógica de registro real aquí (enviar datos a un backend).
-      console.log('Datos de registro:', { nombre, apellido, correo, contrasena });
-      mensajeEl.textContent = '¡Registro exitoso! Redirigiendo al login...';
-      mensajeEl.classList.remove('hidden', 'text-red-600');
-      mensajeEl.classList.add('text-green-600');
+      // Deshabilitar botón mientras se procesa
+      const submitButton = registroForm.querySelector('button[type="submit"]');
+      submitButton.disabled = true;
+      submitButton.textContent = 'Registrando...';
 
-      // Opcional: Redirigir al login después de un momento
-      setTimeout(() => {
-        window.location.href = 'login.html';
-      }, 2000); // Redirige después de 2 segundos
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/auth/register/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            username: correo, // Usamos el correo como username
+            email: correo,
+            password: contrasena,
+            first_name: nombre,
+            last_name: apellido
+          }),
+        });
 
+        if (!response.ok) {
+          const errorData = await response.json();
+          // Formatear errores de validación del backend
+          let errorMessage = `Error al registrar (${response.status}): `;
+          if (errorData && typeof errorData === 'object') {
+            // Construir mensaje de error más detallado
+            for (const key in errorData) {
+              if (errorData.hasOwnProperty(key)) {
+                errorMessage += `${key}: ${Array.isArray(errorData[key]) ? errorData[key].join(', ') : errorData[key]} `;
+              }
+            }
+          } else {
+            errorMessage += response.statusText;
+          }
+          throw new Error(errorMessage.trim());
+        }
+
+        // const data = await response.json(); // La respuesta de CreateAPIView suele ser el objeto creado
+        mensajeEl.textContent = '¡Registro exitoso! Redirigiendo al login...';
+        mensajeEl.classList.remove('hidden', 'text-red-600');
+        mensajeEl.classList.add('text-green-600');
+        registroForm.reset(); // Limpiar el formulario
+
+        setTimeout(() => {
+          window.location.href = 'login.html';
+        }, 2000);
+
+      } catch (error) {
+        console.error('Error en registro:', error);
+        mensajeEl.textContent = error.message || 'Ocurrió un error durante el registro.';
+        mensajeEl.classList.remove('hidden', 'text-green-600');
+        mensajeEl.classList.add('text-red-600');
+      } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Registrarse';
+      }
     });
   </script>
 </body>

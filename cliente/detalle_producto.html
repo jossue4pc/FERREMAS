@@ -188,43 +188,44 @@
       // --- Fin Lógica para Toasts ---
 
       // --- Lógica para cargar el Detalle del Producto ---
+      const API_BASE_URL = 'http://127.0.0.1:8000'; // URL base de tu backend
       const productDetailContainer = document.getElementById('productDetailContainer');
       const selectedProductId = localStorage.getItem('selectedProductId'); // Obtener el ID guardado
 
-      // TODO: En una aplicación real, aquí harías una llamada a tu API de backend
-      // para obtener los detalles del producto usando el selectedProductId.
-      // fetch(`/api/products/${selectedProductId}/`)
-      //   .then(response => response.json())
-      //   .then(producto => {
-      //     renderizarDetalleProducto(producto);
-      //   })
-      //   .catch(error => {
-      //     console.error('Error al cargar detalle del producto:', error);
-      //     productDetailContainer.innerHTML = '<p class="text-center text-red-600 py-10 text-xl">Error al cargar el producto.</p>';
-      //   });
+      let loadedProductDetails = null; // Variable para guardar los detalles del producto cargado
 
-      // --- Simulación: Usar los mismos datos de productos del catálogo ---
-      // Esto es solo para que la página funcione visualmente sin el backend.
-      // En la integración real, eliminarías este array y la búsqueda local.
-      const todosLosProductosSimulados = [
-         { id: "P001", nombre: "Taladro Percutor Bosch Pro", sku: "BOSCH-TP-PRO-001", categoria: "herramientas", descripcion: "Máxima potencia y durabilidad para profesionales. Motor de 850W, mandril de 13mm. Incluye empuñadura auxiliar y medidor de profundidad.", precioCLP: 129990, stock: 15, imagen: "../assets/taladro.jpg", alt: "Taladro Percutor Bosch Profesional", oferta: true },
-         { id: "P002", nombre: "Juego Destornilladores Stanley 6pz", sku: "STANLEY-DS-006", categoria: "manuales", descripcion: "Juego de 6 destornilladores con puntas magnéticas de cromo vanadio. Mangos ergonómicos de doble material para mayor comodidad y torque. Incluye organizador.", precioCLP: 24990, stock: 30, imagen: "../assets/Jgo.-de-destornilladores-STANLEY-6-pzas.-STHT69170-1.png", alt: "Juego de Destornilladores Stanley" },
-         { id: "P003", nombre: "Cinta Métrica Profesional 5m", sku: "PRO-CM-005", categoria: "manuales", descripcion: "Cinta métrica de 5 metros con carcasa ABS de alta resistencia. Cinta de acero con recubrimiento de nylon para mayor durabilidad. Freno de cinta y clip para cinturón.", precioCLP: 9990, stock: 50, imagen: "../assets/d_nq_np_2x_820651-mlc40854154766_022020-f-8cff2697-107e-4579-baa7-b830d0424250.jpg", alt: "Cinta Métrica Profesional 5m" },
-         { id: "P004", nombre: "Martillo Carpintero Mango Fibra", sku: "PRO-MART-001", categoria: "manuales", descripcion: "Martillo de carpintero con cabeza de acero forjado de alta calidad. Mango de fibra de vidrio con recubrimiento de goma para absorción de vibraciones y agarre seguro.", precioCLP: 12990, stock: 22, imagen: "../assets/martillo.png", alt: "Martillo Profesional Mango Fibra" },
-         { id: "P005", nombre: "Esmeril Angular 4 1/2 Makita", sku: "MAKITA-EA-004", categoria: "herramientas", descripcion: "Esmeril angular compacto y ligero con potente motor de 720W. Ideal para corte y desbaste. Incluye guarda de seguridad y llave.", precioCLP: 75500, stock: 8, imagen: "../assets/esmeril_angular.jpg", alt: "Esmeril Angular Makita", oferta: true },
-         { id: "P006", nombre: "Guantes de Seguridad Anticorte", sku: "SEG-GUAN-010", categoria: "seguridad", descripcion: "Guantes de seguridad con nivel 5 de resistencia al corte. Fabricados con fibras de alta tecnología. Palma recubierta de poliuretano para un agarre excepcional.", precioCLP: 8990, stock: 100, imagen: "../assets/guantes_seguridad.jpg", alt: "Guantes de Seguridad Anticorte" }
-      ];
-
-      const productoEncontrado = todosLosProductosSimulados.find(p => p.id === selectedProductId);
-
-      if (productoEncontrado) {
-        renderizarDetalleProducto(productoEncontrado);
+      if (!selectedProductId) {
+          productDetailContainer.innerHTML = '<p class="text-center text-red-600 py-10 text-xl">No se ha seleccionado ningún producto.</p>';
       } else {
-        productDetailContainer.innerHTML = '<p class="text-center text-red-600 py-10 text-xl">Producto no encontrado.</p>';
+          cargarDetalleProducto(selectedProductId);
       }
-      // --- Fin Simulación ---
 
-      function renderizarDetalleProducto(producto) {
+      async function cargarDetalleProducto(productId) {
+          if (!productDetailContainer) return;
+          productDetailContainer.innerHTML = '<p class="text-center text-gray-600 py-10 text-xl">Cargando detalle del producto...</p>';
+          try {
+              // Hacemos la petición a la API para obtener los detalles de un producto específico por su ID
+              const response = await fetch(`${API_BASE_URL}/api/producto/${productId}/`);
+
+              if (!response.ok) {
+                  if (response.status === 404) {
+                      productDetailContainer.innerHTML = '<p class="text-center text-red-600 py-10 text-xl">Producto no encontrado.</p>';
+                      return;
+                  }
+                  throw new Error(`Error HTTP: ${response.status}`);
+              }
+
+              const producto = await response.json();
+              loadedProductDetails = producto; // Guardar los detalles cargados
+              renderizarDetalleProducto(producto);
+
+          } catch (error) {
+              console.error('Error al cargar detalle del producto:', error);
+              productDetailContainer.innerHTML = '<p class="text-center text-red-600 py-10 text-xl">Error al cargar el producto. Intenta más tarde.</p>';
+          }
+      }
+
+      function renderizarDetalleProducto(producto) { // Recibe el objeto producto de la API
         const detalleHTML = `
           <div class="flex flex-col md:flex-row gap-8">
             <div class="md:w-1/2 flex justify-center items-center bg-gray-50 rounded-lg p-6">
@@ -233,16 +234,25 @@
             <div class="md:w-1/2 flex flex-col">
               <h2 class="text-3xl font-bold text-gray-900 mb-2">${producto.nombre}</h2>
               <p class="text-sm text-gray-600 mb-4">SKU: ${producto.sku}</p>
-              ${producto.oferta ? '<span class="inline-block bg-red-500 text-white text-sm font-semibold px-3 py-1 rounded-full mb-4">OFERTA</span>' : ''}
+              <!-- ${producto.oferta ? '<span class="inline-block bg-red-500 text-white text-sm font-semibold px-3 py-1 rounded-full mb-4">OFERTA</span>' : ''} --> <!-- Asumiendo que la API no provee 'oferta' -->
               
               <p class="text-gray-800 text-lg mb-6">${producto.descripcion}</p>
               
               <div class="mt-auto">
-                <p class="font-bold text-orange-600 text-4xl mb-4">$${producto.precioCLP.toLocaleString('es-CL')}</p>
-                <p class="text-sm ${producto.stock > 0 ? 'text-green-600' : 'text-red-600'} mb-6">
-                  ${producto.stock > 0 ? `Disponible (${producto.stock} unidades)` : 'Agotado'}
+                <p class="font-bold text-orange-600 text-4xl mb-4">$${producto.precio ? producto.precio.toLocaleString('es-CL') : 'N/A'}</p> <!-- Usar producto.precio -->
+                <p class="text-sm ${producto.cantidad > 0 ? 'text-green-600' : 'text-red-600'} mb-6">
+                  ${producto.cantidad > 0 ? `Disponible (${producto.cantidad} unidades)` : 'Agotado'} <!-- Usar producto.cantidad -->
                 </p>
                 
+                <!-- Controles de Cantidad (Opcional en detalle, pero útil) -->
+                <!--
+                <div class="flex items-center gap-2 mb-6">
+                    <label for="quantityInput" class="text-gray-700 font-medium">Cantidad:</label>
+                    <input type="number" id="quantityInput" value="1" min="1" max="${producto.cantidad}" class="w-16 px-2 py-1 border rounded-md text-center focus:outline-none focus:ring-2 focus:ring-orange-500">
+                </div>
+                -->
+
+                <!-- Botón Añadir al Carrito -->
                 <button data-product-id="${producto.id}" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 rounded-lg text-lg transition-colors flex items-center justify-center gap-2 add-to-cart-btn" ${producto.stock <= 0 ? 'disabled' : ''}>
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
                     Añadir al Carrito
@@ -261,15 +271,15 @@
                 const productId = this.dataset.productId;
                 let cart = getCartFromStorage();
                 const existingItemIndex = cart.findIndex(item => item.id === productId);
-                // El 'producto' ya lo tenemos de 'productoEncontrado'
+                // Usamos los detalles del producto que ya cargamos de la API
 
-                if (!productoEncontrado) { // Doble chequeo, aunque ya debería estar cargado
+                if (!loadedProductDetails) { // Asegurarse de que los detalles estén cargados
                     showToast('Error: Detalles del producto no disponibles.', 'error');
                     return;
                 }
 
                 if (existingItemIndex > -1) {
-                    if (cart[existingItemIndex].quantity < productoEncontrado.stock) {
+                    if (cart[existingItemIndex].quantity < loadedProductDetails.cantidad) { // Usar cantidad
                         cart[existingItemIndex].quantity++;
                         saveCartToStorage(cart);
                         showToast(`"${productoEncontrado.nombre}" añadido al carrito. Cantidad: ${cart[existingItemIndex].quantity}`, 'success');
@@ -278,7 +288,7 @@
                         return;
                     }
                 } else {
-                    if (productoEncontrado.stock > 0) { cart.push({ id: productId, quantity: 1 }); saveCartToStorage(cart); showToast(`"${productoEncontrado.nombre}" añadido al carrito.`, 'success'); }
+                    if (loadedProductDetails.cantidad > 0) { cart.push({ id: productId, quantity: 1 }); saveCartToStorage(cart); showToast(`"${loadedProductDetails.nombre}" añadido al carrito.`, 'success'); } // Usar cantidad
                     else { showToast('Este producto está agotado.', 'error'); return; }
                 }
             });

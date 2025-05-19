@@ -6,9 +6,10 @@
   <title>FERREMAS - Catálogo Cliente</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"> <!-- Añadido para iconos -->
   <style>
-    body { 
-      font-family: 'Roboto', sans-serif; 
+    body {
+      font-family: 'Roboto', sans-serif;
       scroll-behavior: smooth;
     }
     .product-card:hover .add-to-cart-btn {
@@ -53,24 +54,24 @@
 </head>
 <body class="bg-gray-100 text-gray-800 flex flex-col min-h-screen">
 
-  <!-- Header para Cliente Logueado -->
+  <!-- Header Dinámico -->
   <header class="bg-white shadow-lg sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
       <a href="../index.html" class="text-3xl font-bold text-orange-600 hover:text-orange-700 transition-colors">FERREMAS</a>
-      <nav class="space-x-4 text-sm font-medium flex items-center">
-        <a href="#catalogoProductos" class="text-gray-700 hover:text-orange-600 transition-colors">Catálogo</a>
-        <a href="mis_pedidos.html" class="text-gray-700 hover:text-orange-600 transition-colors hidden md:inline">Mis Pedidos</a>
-        <a href="carrito.html" class="text-gray-700 hover:text-orange-600 transition-colors relative hidden md:inline">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-          </svg>
+      <nav class="space-x-2 md:space-x-4 text-sm font-medium flex items-center">
+        <a href="../index.html" class="text-gray-700 hover:text-orange-600 transition-colors">Inicio</a>
+        <a href="catalogo.html" class="text-orange-600 font-semibold transition-colors">Catálogo</a>
+        <a href="carrito.html" class="text-gray-700 hover:text-orange-600 transition-colors relative">
+          <i class="fas fa-shopping-cart text-xl"></i>
           <span id="cartItemCount" class="absolute -top-2 -right-2 bg-orange-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">0</span>
         </a>
-        <div class="relative group">
-            <span id="nombreUsuario" class="text-gray-700 cursor-pointer hover:text-orange-600">Invitado</span>
-            <!-- Podríamos añadir un dropdown aquí con más opciones si el usuario está logueado -->
-        </div>
-        <button id="btnLogout" class="px-4 py-2 bg-red-500 text-white rounded-lg shadow hover:bg-red-600 transition-colors">Cerrar Sesión</button>
+        <!-- Estado No Logueado -->
+        <a id="navLogin" href="../login.html" class="px-3 py-2 bg-orange-600 text-white rounded-lg shadow hover:bg-orange-700 transition-colors">Iniciar sesión</a>
+        <a id="navRegistro" href="../registro.html" class="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg shadow hover:bg-gray-300 transition-colors">Registrarse</a>
+        <!-- Estado Logueado (inicialmente oculto) -->
+        <span id="navUsuario" class="hidden text-gray-700 items-center">Hola, <strong id="nombreUsuario" class="ml-1"></strong></span>
+        <a id="navMisPedidos" href="mis_pedidos.html" class="hidden text-gray-700 hover:text-orange-600 transition-colors">Mis Pedidos</a>
+        <button id="navLogout" class="hidden px-3 py-2 bg-red-500 text-white rounded-lg shadow hover:bg-red-700 transition-colors">Cerrar Sesión</button>
       </nav>
     </div>
   </header>
@@ -154,47 +155,69 @@
     document.addEventListener('DOMContentLoaded', function() {
       const nombreUsuarioEl = document.getElementById('nombreUsuario');
       const saludoClienteEl = document.getElementById('saludoCliente');
-      const btnLogout = document.getElementById('btnLogout');
+      // const btnLogout = document.getElementById('btnLogout'); // Ya no se usa aquí, se maneja en actualizarHeaderSegunLogin
 
-      // Simular obtención de datos del usuario desde localStorage (como se guardaría en login.html)
-      const userName = localStorage.getItem('userName');
-      const authToken = localStorage.getItem('authToken');
+      // --- Lógica del Header Dinámico ---
+      actualizarHeaderSegunLogin(); // Llamar a la función para configurar el header
 
-      if (authToken && userName) { // Solo mostrar como logueado si hay token y nombre
-        if (nombreUsuarioEl) nombreUsuarioEl.textContent = `Hola, ${userName}`;
-        if (saludoClienteEl) saludoClienteEl.textContent = `¡Bienvenido de nuevo, ${userName}!`;
-        if (btnLogout) btnLogout.classList.remove('hidden');
-      } else {
-        // Si no hay nombre de usuario, podría ser un acceso no autorizado o un error.
-        // Por ahora, redirigimos al login. En una app real, el backend protegería esta ruta.
-        if (nombreUsuarioEl) nombreUsuarioEl.textContent = 'Invitado';
-        if (saludoClienteEl) saludoClienteEl.textContent = '¡Bienvenido a FERREMAS!'; // Ajustado para que no muestre nombre si no está logueado
-        if (btnLogout) btnLogout.classList.add('hidden'); // Ocultar botón de logout si no está logueado
-        // Considerar redirigir a login si esta página requiere autenticación obligatoria
-        // window.location.href = '../login.html'; 
-      }
+      function actualizarHeaderSegunLogin() {
+        const token = localStorage.getItem('authToken');
+        const userDataString = localStorage.getItem('userData');
+        
+        const navLogin = document.getElementById('navLogin');
+        const navRegistro = document.getElementById('navRegistro');
+        const navUsuario = document.getElementById('navUsuario');
+        const nombreUsuarioEl = document.getElementById('nombreUsuario');
+        const navMisPedidos = document.getElementById('navMisPedidos');
+        const navLogout = document.getElementById('navLogout');
 
-      if (btnLogout) {
-        btnLogout.addEventListener('click', function() {
-          // Limpiar datos de sesión simulados
-          localStorage.removeItem('authToken');
-          localStorage.removeItem('userRole');
-          localStorage.removeItem('userName');
-          
-          // Redirigir a la página de inicio o login
-          window.location.href = '../login.html';
-        });
+        if (token && userDataString) {
+          const userData = JSON.parse(userDataString);
+          // Usuario logueado
+          if (navLogin) navLogin.classList.add('hidden');
+          if (navRegistro) navRegistro.classList.add('hidden');
+
+          if (navUsuario) navUsuario.classList.remove('hidden');
+          if (nombreUsuarioEl) nombreUsuarioEl.textContent = userData.first_name || userData.username;
+          if (navMisPedidos) navMisPedidos.classList.remove('hidden'); // Mostrar "Mis Pedidos"
+          if (navLogout) navLogout.classList.remove('hidden');
+
+          // Actualizar saludo en el banner principal
+          const saludoClienteEl = document.getElementById('saludoCliente');
+          if (saludoClienteEl) saludoClienteEl.textContent = `¡Bienvenido de nuevo, ${userData.first_name || userData.username}!`;
+
+
+          if (navLogout) {
+            navLogout.addEventListener('click', function() {
+              localStorage.removeItem('authToken');
+              localStorage.removeItem('userData');
+              localStorage.removeItem('shoppingCart'); // Limpiar carrito también al cerrar sesión
+              window.location.href = '../login.html'; // Redirigir al login o a index.html
+            });
+          }
+        } else {
+           // Usuario no logueado - asegurar que los elementos correctos estén visibles/ocultos
+           if (navLogin) navLogin.classList.remove('hidden');
+           if (navRegistro) navRegistro.classList.remove('hidden');
+           if (navUsuario) navUsuario.classList.add('hidden');
+           if (navMisPedidos) navMisPedidos.classList.add('hidden');
+           if (navLogout) navLogout.classList.add('hidden');
+
+           // Restaurar saludo en el banner principal
+           const saludoClienteEl = document.getElementById('saludoCliente');
+           if (saludoClienteEl) saludoClienteEl.textContent = '¡Bienvenido a FERREMAS!';
+        }
       }
 
       // --- Lógica del Carrito (replicada de carrito.html para consistencia) ---
       const cartItemCountEl_Header = document.getElementById('cartItemCount'); // Renombrado para evitar conflicto si hay otro
 
       function getCartFromStorage() {
-        return JSON.parse(localStorage.getItem('ferremasCart')) || [];
+        return JSON.parse(localStorage.getItem('shoppingCart')) || []; // Usar 'shoppingCart' como en carrito.html
       }
 
       function saveCartToStorage(cart) {
-        localStorage.setItem('ferremasCart', JSON.stringify(cart));
+        localStorage.setItem('shoppingCart', JSON.stringify(cart)); // Usar 'shoppingCart'
         updateCartCountInHeader(cart);
       }
 
@@ -219,7 +242,7 @@
         const toast = document.createElement('div');
         toast.className = `toast ${type}`; // Aplica clase de tipo (success, error, info)
         toast.textContent = message;
-        
+
         toastContainer.appendChild(toast);
 
         // Forzar reflow para que la transición de entrada funcione
@@ -234,78 +257,11 @@
       }
       // --- Fin Lógica para Toasts ---
 
-      // --- Datos de Productos (Simulados) ---
-      // TODO: Estos datos vendrán de la API del backend
-      let todosLosProductos = [
-         {
-            id: "P001",
-            nombre: "Taladro Percutor Bosch Pro",
-            sku: "BOSCH-TP-PRO-001",
-            categoria: "herramientas",
-            descripcion: "Máxima potencia y durabilidad para profesionales. Motor de 850W, mandril de 13mm.",
-            precioCLP: 129990,
-            stock: 15,
-            imagen: "../assets/taladro.jpg",
-            alt: "Taladro Percutor Bosch Profesional",
-            oferta: true
-          },
-          {
-            id: "P002",
-            nombre: "Juego Destornilladores Stanley 6pz",
-            sku: "STANLEY-DS-006",
-            categoria: "manuales",
-            descripcion: "Puntas magnéticas de cromo vanadio. Mangos ergonómicos para mayor comodidad.",
-            precioCLP: 24990,
-            stock: 30,
-            imagen: "../assets/Jgo.-de-destornilladores-STANLEY-6-pzas.-STHT69170-1.png",
-            alt: "Juego de Destornilladores Stanley"
-          },
-          {
-            id: "P003",
-            nombre: "Cinta Métrica Profesional 5m",
-            sku: "PRO-CM-005",
-            categoria: "manuales",
-            descripcion: "Carcasa ABS de alta resistencia, cinta de acero con recubrimiento nylon y freno.",
-            precioCLP: 9990,
-            stock: 50,
-            imagen: "../assets/d_nq_np_2x_820651-mlc40854154766_022020-f-8cff2697-107e-4579-baa7-b830d0424250.jpg",
-            alt: "Cinta Métrica Profesional 5m"
-          },
-          {
-            id: "P004",
-            nombre: "Martillo Carpintero Mango Fibra",
-            sku: "PRO-MART-001",
-            categoria: "manuales",
-            descripcion: "Cabeza de acero forjado, mango de fibra de vidrio antivibración. Ideal para trabajos pesados.",
-            precioCLP: 12990,
-            stock: 22,
-            imagen: "../assets/martillo.png", // Asegúrate que esta imagen exista
-            alt: "Martillo Profesional Mango Fibra"
-          },
-          {
-            id: "P005",
-            nombre: "Esmeril Angular 4 1/2 Makita",
-            sku: "MAKITA-EA-004",
-            categoria: "herramientas",
-            descripcion: "Potente motor de 720W, diseño compacto y ligero para fácil manejo. Incluye disco.",
-            precioCLP: 75500,
-            stock: 8,
-            imagen: "../assets/esmeril_angular.jpg", // Crear o usar una imagen placeholder
-            alt: "Esmeril Angular Makita",
-            oferta: true
-          },
-          {
-            id: "P006",
-            nombre: "Guantes de Seguridad Anticorte",
-            sku: "SEG-GUAN-010",
-            categoria: "seguridad",
-            descripcion: "Nivel 5 de resistencia al corte. Palma recubierta de poliuretano para mejor agarre.",
-            precioCLP: 8990,
-            stock: 100,
-            imagen: "../assets/guantes_seguridad.jpg", // Crear o usar una imagen placeholder
-            alt: "Guantes de Seguridad Anticorte"
-          }
-      ];
+      // --- Datos de Productos ---
+
+      let todosLosProductos = []; // Se llenará desde la API
+      const API_BASE_URL = 'http://127.0.0.1:8000'; // URL base de tu backend
+
 
       const productosContainer = document.getElementById('productosClienteContainer');
       const searchInput = document.getElementById('searchInput');
@@ -313,32 +269,34 @@
 
       function renderizarProductos(productosAMostrar) {
         if (!productosContainer) return;
-        productosContainer.innerHTML = ''; 
+        productosContainer.innerHTML = '';
 
-        if (productosAMostrar.length === 0) {
+        if (!productosAMostrar || productosAMostrar.length === 0) {
           productosContainer.innerHTML = '<p class="col-span-full text-center text-gray-600 py-10 text-xl">No se encontraron productos que coincidan con tu búsqueda.</p>';
           return;
         }
 
         productosAMostrar.forEach(producto => {
+            // Usar placeholder si la API no provee imagen o es nula/vacía
+            const imagenUrl = producto.imagen || "../assets/placeholder_producto.png";
             const productoHTML = `
               <div class="product-card group bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col overflow-hidden relative">
-                ${producto.oferta ? '<span class="absolute top-0 right-0 bg-red-500 text-white text-xs font-semibold px-3 py-1 rounded-bl-lg z-10">OFERTA</span>' : ''}
+                <!-- ${producto.oferta ? '<span class="absolute top-0 right-0 bg-red-500 text-white text-xs font-semibold px-3 py-1 rounded-bl-lg z-10">OFERTA</span>' : ''} --> <!-- API no provee 'oferta' -->
                 <div class="h-56 overflow-hidden">
-                    <img src="${producto.imagen}" alt="${producto.alt}" class="w-full h-full object-contain p-4 transition-transform duration-300 group-hover:scale-105">
+                    <img src="${imagenUrl}" alt="${producto.nombre}" class="w-full h-full object-contain p-4 transition-transform duration-300 group-hover:scale-105" onerror="this.onerror=null;this.src='../assets/placeholder_producto.png';">
                 </div>
                 <div class="p-5 flex-grow flex flex-col">
                   <h4 class="font-semibold text-lg text-gray-900 mb-1 truncate" title="${producto.nombre}">${producto.nombre}</h4>
-                  <p class="text-xs text-gray-500 mb-2">SKU: ${producto.sku}</p>
-                  <p class="text-sm text-gray-600 mb-3 h-12 overflow-hidden">${producto.descripcion.substring(0, 70)}${producto.descripcion.length > 70 ? '...' : ''}</p>
-                  
+                  <p class="text-xs text-gray-500 mb-2">SKU: ${producto.sku || 'N/A'}</p> <!-- API no provee SKU -->
+                  <p class="text-sm text-gray-600 mb-3 h-12 overflow-hidden">${producto.descripcion ? producto.descripcion.substring(0, 70) + (producto.descripcion.length > 70 ? '...' : '') : 'Sin descripción'}</p>
+
                   <div class="mt-auto">
-                    <p class="font-bold text-orange-600 text-2xl mb-3">$${producto.precioCLP.toLocaleString('es-CL')}</p>
-                    <p class="text-xs ${producto.stock > 0 ? 'text-green-600' : 'text-red-600'} mb-3">
-                      ${producto.stock > 0 ? `Disponible (${producto.stock} unidades)` : 'Agotado'}
+                    <p class="font-bold text-orange-600 text-2xl mb-3">$${producto.precio ? producto.precio.toLocaleString('es-CL') : 'N/A'}</p> <!-- Usar producto.precio -->
+                    <p class="text-xs ${producto.cantidad > 0 ? 'text-green-600' : 'text-red-600'} mb-3">
+                      ${producto.cantidad > 0 ? `Disponible (${producto.cantidad} unidades)` : 'Agotado'}
                     </p>
                     <div class="flex gap-2">
-                        <button data-product-id="${producto.id}" class="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2 px-3 rounded-lg text-sm flex items-center justify-center gap-1 add-to-cart-btn opacity-0 transform translate-y-2 transition-all duration-300 ease-out">
+                        <button data-product-id="${producto.id}" class="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2 px-3 rounded-lg text-sm flex items-center justify-center gap-1 add-to-cart-btn opacity-0 transform translate-y-2 transition-all duration-300 ease-out" ${producto.cantidad <= 0 ? 'disabled' : ''}>
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
                             Añadir
                         </button>
@@ -353,27 +311,53 @@
             productosContainer.innerHTML += productoHTML;
           });
         }
-      
-      function filtrarYBuscarProductos() {
+
+      async function cargarYRenderizarProductos() {
+        if (!productosContainer) return;
+        productosContainer.innerHTML = '<p class="col-span-full text-center text-gray-600 py-10 text-xl">Cargando productos...</p>';
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/producto/`); // Asumiendo que esta es la URL correcta
+            if (!response.ok) {
+                throw new Error(`Error HTTP: ${response.status}`);
+            }
+            const data = await response.json();
+            // La API de Django REST framework a menudo devuelve los resultados en una clave "results" si usa paginación.
+            // Si tu API devuelve la lista directamente, puedes usar: todosLosProductos = data;
+            todosLosProductos = Array.isArray(data) ? data : (data.results || []);
+            filtrarYBuscarProductos(); // Llama a filtrar para aplicar filtros iniciales si los hay
+        } catch (error) {
+            console.error('Error al cargar productos:', error);
+            productosContainer.innerHTML = '<p class="col-span-full text-center text-red-600 py-10 text-xl">Error al cargar productos. Intenta más tarde.</p>';
+            showToast('Error al cargar productos.', 'error');
+        }
+      }
+
+      function filtrarYBuscarProductos() { // Ahora opera sobre `todosLosProductos` que vienen de la API
         const terminoBusqueda = searchInput.value.toLowerCase();
         const categoriaSeleccionada = categoryFilter.value;
 
         const productosFiltrados = todosLosProductos.filter(producto => {
-          const coincideBusqueda = producto.nombre.toLowerCase().includes(terminoBusqueda) ||
-                                   producto.sku.toLowerCase().includes(terminoBusqueda) ||
-                                   producto.descripcion.toLowerCase().includes(terminoBusqueda);
-          const coincideCategoria = categoriaSeleccionada === "" || producto.categoria === categoriaSeleccionada;
+          // Asegurarse de que las propiedades existan antes de acceder a ellas
+          const nombre = producto.nombre ? producto.nombre.toLowerCase() : '';
+          // const sku = producto.sku ? producto.sku.toLowerCase() : ''; // API no provee SKU
+          const descripcion = producto.descripcion ? producto.descripcion.toLowerCase() : '';
+          const categoria = producto.categoria ? producto.categoria.toLowerCase() : '';
+
+          const coincideBusqueda = nombre.includes(terminoBusqueda) ||
+                                   // sku.includes(terminoBusqueda) ||
+                                   descripcion.includes(terminoBusqueda);
+          const coincideCategoria = categoriaSeleccionada === "" || categoria === categoriaSeleccionada;
           return coincideBusqueda && coincideCategoria;
         });
         renderizarProductos(productosFiltrados);
       }
 
       // Event Listeners para filtros y búsqueda
-      if(searchInput) searchInput.addEventListener('input', filtrarYBuscarProductos); 
+      if(searchInput) searchInput.addEventListener('input', filtrarYBuscarProductos);
       if(categoryFilter) categoryFilter.addEventListener('change', filtrarYBuscarProductos);
 
-      // Carga inicial de productos
-      renderizarProductos(todosLosProductos);
+      // Carga inicial de productos desde la API
+      cargarYRenderizarProductos();
 
       // Delegación de eventos para botones de productos (Añadir al carrito, Ver detalle)
       if (productosContainer) {
@@ -385,27 +369,31 @@
           if (target.classList.contains('add-to-cart-btn')) {
             // Lógica real para añadir al carrito
             let cart = getCartFromStorage();
-            const existingItemIndex = cart.findIndex(item => item.id === productId);
-            const productDetails = todosLosProductos.find(p => p.id === productId); // Obtener detalles del producto
+            const existingItemIndex = cart.findIndex(item => item.id == productId); // Usar == por si los tipos son diferentes
 
-            if (!productDetails) {
-                showToast('Error: Producto no encontrado.', 'error');
-                return;
+            // Obtener nombre y cantidad de la tarjeta renderizada para el toast y la verificación básica
+            const cardElement = target.closest('.product-card');
+            const productNameFromCard = cardElement.querySelector('h4').textContent;
+            const stockText = cardElement.querySelector('.text-xs.mb-3').textContent; // Ej: "Disponible (10 unidades)" o "Agotado"
+            let stockFromCard = 0;
+            if (stockText.includes('Disponible')) {
+                const match = stockText.match(/\((\d+)\s*unidades\)/);
+                if (match) stockFromCard = parseInt(match[1], 10);
             }
 
             if (existingItemIndex > -1) {
               // Si el producto ya está en el carrito, incrementar cantidad si hay stock
-              if (cart[existingItemIndex].quantity < productDetails.stock) {
+              if (cart[existingItemIndex].quantity < stockFromCard) { // Usar stock de la tarjeta
                 cart[existingItemIndex].quantity++;
                 saveCartToStorage(cart);
-                showToast(`"${productDetails.nombre}" añadido al carrito. Cantidad: ${cart[existingItemIndex].quantity}`, 'success');
+                showToast(`"${productNameFromCard}" añadido al carrito. Cantidad: ${cart[existingItemIndex].quantity}`, 'success');
               } else {
                 showToast('No puedes añadir más unidades (stock máximo alcanzado).', 'info');
                 return;
               }
             } else {
               // Si el producto no está, añadirlo con cantidad 1 (si hay stock)
-              if (productDetails.stock > 0) { cart.push({ id: productId, quantity: 1 }); saveCartToStorage(cart); showToast(`"${productDetails.nombre}" añadido al carrito.`, 'success');}
+              if (stockFromCard > 0) { cart.push({ id: productId, quantity: 1 }); saveCartToStorage(cart); showToast(`"${productNameFromCard}" añadido al carrito.`, 'success');}
               else { showToast('Este producto está agotado.', 'error'); return; }
             }
 
@@ -423,3 +411,4 @@
   </script>
 </body>
 </html>
+

@@ -51,72 +51,76 @@
   </footer>
 
   <script>
+    const API_BASE_URL = 'http://127.0.0.1:8000'; // URL base de tu backend
     const loginForm = document.getElementById('loginForm');
     const btnLogin = document.getElementById('btnLogin');
     const mensajeEl = document.getElementById('mensaje');
 
-    loginForm.addEventListener('submit', function(e) {
+    loginForm.addEventListener('submit', async function(e) { // Convertimos la función a async
       e.preventDefault();
       btnLogin.disabled = true;
       btnLogin.textContent = 'Procesando...';
       mensajeEl.classList.add('hidden');
+      mensajeEl.classList.remove('text-red-600', 'text-green-600');
 
       const usuario = document.getElementById('usuario').value.trim();
       const contrasena = document.getElementById('contrasena').value.trim();
 
       if (usuario !== '' && contrasena !== '') {
-        // --- TODO: Implementar lógica de autenticación real aquí ---
-        // 1. Construir el objeto de datos a enviar al backend:
-        //    const credenciales = {
-        //      username: usuario, // o 'email' si se usa correo para login
-        //      password: contrasena
-        //    };
-        // 2. Realizar una petición (ej. POST con fetch) al endpoint de login del backend:
-        //    fetch('/api/auth/login/', { // Reemplazar con el endpoint real
-        //      method: 'POST',
-        //      headers: { 'Content-Type': 'application/json' },
-        //      body: JSON.stringify(credenciales)
-        //    })
-        //    .then(response => {
-        //      if (!response.ok) {
-        //        // Si la respuesta no es OK (ej. 400, 401), intentar leer el mensaje de error
-        //        return response.json().then(err => Promise.reject(err));
-        //      }
-        //      return response.json(); // Asumiendo que el backend devuelve JSON con token y rol
-        //    })
-        //    .then(data => {
-        //      // Ejemplo de respuesta esperada: { token: "un_jwt_token", rol: "cliente", nombre_usuario: "Jossue" }
-        //      localStorage.setItem('authToken', data.token); // Guardar el token
-        //      localStorage.setItem('userRole', data.rol);
-        //      localStorage.setItem('userName', data.nombre_usuario || usuario);
-        //
-        //      mensajeEl.textContent = '¡Login exitoso! Redirigiendo...';
-        //      mensajeEl.classList.remove('hidden', 'text-red-600');
-        //      mensajeEl.classList.add('text-green-600');
-        //
-        //      // Redirigir según el rol obtenido del backend
-        //      setTimeout(() => {
-        //        switch (data.rol) {
-        //          case 'cliente': window.location.href = './cliente/catalogo.html'; break;
-        //          case 'vendedor': window.location.href = './vendedor/pedidos.html'; break;
-        //          // ... otros roles
-        //          default: window.location.href = 'index.html'; // Página por defecto
-        //        }
-        //      }, 1000);
-        //    })
-        //    .catch(error => {
-        //      console.error('Error en login:', error);
-        //      mensajeEl.textContent = error.detail || error.message || 'Usuario o contraseña incorrectos.';
-        //      mensajeEl.classList.remove('hidden', 'text-green-600');
-        //      mensajeEl.classList.add('text-red-600');
-        //      btnLogin.disabled = false; btnLogin.textContent = 'Ingresar';
-        //    });
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/auth/login/`, { // <--- Cambiada la URL al nuevo endpoint
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ username: usuario, password: contrasena }),
+          });
 
-        // Simulación actual (eliminar cuando se integre el backend):
-        console.warn("Simulación de login: El rol se determinará por el backend.");
-        alert("Login simulado. En una aplicación real, serías redirigido según tu rol determinado por el servidor.");
-        btnLogin.disabled = false; btnLogin.textContent = 'Ingresar';
+          if (!response.ok) {
+            const errorData = await response.json();
+            let errorMessage = 'Error al iniciar sesión.';
+            if (errorData && errorData.non_field_errors) {
+              errorMessage = errorData.non_field_errors.join(' ');
+            } else if (response.status === 400) {
+              errorMessage = 'Usuario o contraseña incorrectos.';
+            }
+            throw new Error(errorMessage);
+          }
 
+          const data = await response.json();
+
+          if (data.token) {
+            localStorage.setItem('authToken', data.token);
+            // Guardar el objeto de usuario completo. Esto es lo que admin_usuarios.html espera.
+            if (data.user) {
+              localStorage.setItem('userData', JSON.stringify(data.user));
+            }
+
+            mensajeEl.textContent = '¡Login exitoso! Redirigiendo...';
+            mensajeEl.classList.remove('hidden', 'text-red-600'); // Quitar clases de error
+            mensajeEl.classList.add('text-green-600'); // Poner mensaje de éxito en verde
+
+            setTimeout(() => {
+              // <--- Redirigir basado en el rol
+              if (data.user.is_superuser) {
+                window.location.href = './admin/admin_usuarios.html'; // Redirige al panel de admin de Django
+              } else if (data.user.is_staff) {
+                window.location.href = './bodeguero/catalogo_bodeguero.html'; // Redirigir a la página del bodeguero
+              } else {
+                window.location.href = './cliente/catalogo.html'; // Redirigir al catálogo del cliente
+              }
+            }, 1500);
+          } else {
+            throw new Error('No se recibió token del servidor.');
+          }
+        } catch (error) {
+          console.error('Error en login:', error);
+          mensajeEl.textContent = error.message || 'Ocurrió un error. Intenta de nuevo.';
+          mensajeEl.classList.remove('hidden');
+          mensajeEl.classList.add('text-red-600');
+          btnLogin.disabled = false;
+          btnLogin.textContent = 'Ingresar';
+        }
       } else {
         mensajeEl.textContent = 'Por favor completa todos los campos.';
         mensajeEl.classList.remove('hidden', 'text-green-600');

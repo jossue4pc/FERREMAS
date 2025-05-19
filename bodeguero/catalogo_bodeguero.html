@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FERREMAS - Catálogo Bodeguero</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+    }
+    /* Estilos para la tabla */
+    .product-table {
+        width: 100%; /* Asegura que la tabla ocupe el ancho completo del contenedor */
+        border-collapse: collapse;
+    }
+    .product-table th, .product-table td {
+        padding: 0.75rem; /* 12px */
+        border-bottom: 1px solid #e5e7eb; /* gray-200 */
+        text-align: left;
+    }
+    .product-table th {
+        background-color: #f3f4f6; /* gray-100 */
+        font-weight: bold;
+        text-transform: uppercase;
+        font-size: 0.875rem; /* sm */
+        color: #4b5563; /* gray-700 */
+    }
+    .product-table tbody tr:hover {
+        background-color: #f9fafb; /* gray-50 */
+    }
+    .product-table td {
+        vertical-align: middle; /* Centra verticalmente el contenido de las celdas */
+    }
+
+    .product-image {
+        width: 50px;
+        height: 50px;
+        object-fit: contain;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 text-gray-800 flex flex-col min-h-screen">
+
+  <!-- Header para Bodeguero -->
+  <header class="bg-white shadow-lg sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+      <a href="../index.html" class="text-3xl font-bold text-orange-600 hover:text-orange-700 transition-colors">FERREMAS</a>
+      <nav class="space-x-4 text-sm font-medium flex items-center">
+        <span class="text-orange-600 font-semibold border-b-2 border-orange-600">Catálogo (Bodeguero)</span>
+        <!-- Puedes añadir enlaces relevantes para el bodeguero aquí, por ejemplo, un enlace directo al panel de administración de Django -->
+        <a href="http://127.0.0.1:8000/admin/" target="_blank" class="text-gray-700 hover:text-orange-600 transition-colors hidden md:inline">Admin Django</a>
+        <div class="relative group">
+            <span id="nombreUsuario" class="text-gray-700 cursor-pointer hover:text-orange-600">Cargando...</span>
+        </div>
+        <button id="btnLogout" class="px-4 py-2 bg-red-500 text-white rounded-lg shadow hover:bg-red-600 transition-colors">Cerrar Sesión</button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Contenido Principal - Vista Bodeguero -->
+  <main class="flex-grow container mx-auto px-4 py-8">
+    <div class="bg-white shadow-xl rounded-lg p-6 md:p-8">
+      <div class="flex justify-between items-center mb-8">
+        <h2 class="text-3xl font-bold text-orange-600 border-b-2 border-orange-500 pb-2">Gestión de Productos</h2>
+        <button id="btnNuevoProducto" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded shadow">
+          Crear Nuevo Producto
+        </button>
+      </div>
+
+      <!-- Sección de Filtros -->
+      <div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+        <h3 class="text-xl font-semibold text-gray-700 mb-3">Filtrar Productos</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label for="searchBodegueroInput" class="block text-sm font-medium text-gray-700">Buscar por Nombre:</label>
+            <input type="text" id="searchBodegueroInput" placeholder="Ej: Taladro, Martillo..." class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500">
+          </div>
+          <div>
+            <label for="categoryBodegueroFilter" class="block text-sm font-medium text-gray-700">Filtrar por Categoría:</label>
+            <select id="categoryBodegueroFilter" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 bg-white">
+              <option value="">Todas las Categorías</option>
+              <!-- Las opciones de categoría se podrían poblar dinámicamente si es necesario -->
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Product List Table -->
+      <section id="catalogoProductosBodeguero">
+        <div id="productosBodegueroContainer">
+          <p class="text-center text-gray-600 py-10 text-xl">Cargando productos...</p>
+          <!-- La tabla de productos se renderizará aquí -->
+        </div>
+      </section>
+
+      <!-- Controles de Paginación -->
+      <div id="paginationControls" class="mt-8 flex justify-center items-center space-x-4 hidden">
+        <button id="btnPrevPage" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed">
+          Anterior
+        </button>
+        <span id="pageInfo" class="text-sm text-gray-600"></span>
+        <button id="btnNextPage" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed">
+          Siguiente
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal para Crear/Editar Producto -->
+  <div id="productModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center hidden z-50">
+    <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md mx-auto">
+      <div class="flex justify-between items-center mb-6">
+        <h3 id="modalTitle" class="text-2xl font-bold text-gray-800">Crear Producto</h3>
+        <button id="btnCloseModal" class="text-gray-500 hover:text-gray-700">
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+      <form id="productForm">
+        <input type="hidden" id="productId" name="productId">
+        <div class="mb-4">
+          <label for="nombre" class="block text-sm font-medium text-gray-700 mb-1">Nombre del Producto</label>
+          <input type="text" name="nombre" id="nombre" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm" required>
+        </div>
+        <div class="mb-4">
+          <label for="descripcion" class="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+          <textarea name="descripcion" id="descripcion" rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm" required></textarea>
+        </div>
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <label for="precio" class="block text-sm font-medium text-gray-700 mb-1">Precio (CLP)</label>
+            <input type="number" name="precio" id="precio" min="0" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm" required>
+          </div>
+          <div>
+            <label for="cantidad" class="block text-sm font-medium text-gray-700 mb-1">Cantidad (Stock)</label>
+            <input type="number" name="cantidad" id="cantidad" min="0" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm" required>
+          </div>
+        </div>
+        <div class="mb-4">
+          <label for="categoria" class="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+          <input type="text" name="categoria" id="categoria" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm" required>
+        </div>
+        <div class="mb-6">
+          <label for="imagen" class="block text-sm font-medium text-gray-700 mb-1">Imagen del Producto</label>
+          <input type="file" name="imagen" id="imagen" accept="image/*" class="mt-1 block w-full text-sm text-gray-900 border border-gray-300 rounded-md cursor-pointer bg-gray-50 focus:outline-none focus:border-orange-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100">
+          <p id="currentImageInfo" class="mt-2 text-sm text-gray-500 hidden"></p>
+        </div>
+        <div class="flex justify-end space-x-3">
+          <button type="button" id="btnCancelModal" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 transition-colors">Cancelar</button>
+          <button type="submit" id="btnSaveProduct" class="px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors">Guardar Producto</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-gray-900 text-white py-6 mt-auto">
+    <div class="max-w-7xl mx-auto px-4 text-center">
+      <p class="text-sm">&copy; 2025 FERREMAS. Todos los derechos reservados.</p>
+    </div>
+  </footer>
+
+  <!-- Contenedor para Toasts/Notificaciones -->
+  <div id="toast-container" class="fixed top-6 right-6 z-[10000] flex flex-col gap-3"></div>
+
+  <script>
+    // Configuración de Tailwind (si es necesaria)
+    tailwind.config = {
+      theme: {
+        extend: {
+          animation: {
+            'fade-in': 'fadeIn 1s ease-out',
+          },
+          keyframes: {
+            fadeIn: {
+              '0%': { opacity: 0 },
+              '100%': { opacity: 1 }
+            }
+          }
+        }
+      }
+    };
+
+    // --- Verificación de Autenticación y Rol ---
+    // Esta sección se ejecuta ANTES de DOMContentLoaded para redirigir rápido si es necesario
+    const authToken = localStorage.getItem('authToken');
+    const userDataString = localStorage.getItem('userData'); // Usar 'userData'
+    let localUserData = null;
+
+    if (!authToken || !userDataString) {
+        alert('Acceso no autorizado. Debes iniciar sesión.');
+        window.location.href = '../login.html';
+    } else {
+        localUserData = JSON.parse(userDataString);
+        if (!localUserData || !localUserData.is_staff) { // Solo se necesita que sea staff
+            alert('Acceso no autorizado. Debes iniciar sesión con una cuenta de bodeguero o administrador.');
+            window.location.href = '../login.html';
+        }
+    }
+
+
+    document.addEventListener('DOMContentLoaded', function() {
+      // --- Lógica del Header ---
+      const nombreUsuarioEl = document.getElementById('nombreUsuario');
+      const btnLogout = document.getElementById('btnLogout');
+
+      // Usar localUserData que ya parseamos y validamos arriba
+      if (nombreUsuarioEl && localUserData) {
+          nombreUsuarioEl.textContent = `Hola, ${localUserData.first_name || localUserData.username}`;
+      }
+
+
+      if (btnLogout) {
+        btnLogout.addEventListener('click', function() {
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('userData'); // Remover la clave correcta
+          // Remover otras claves si es necesario
+          // localStorage.removeItem('userRole');
+          // localStorage.removeItem('userName');
+          // localStorage.removeItem('userId');
+          // localStorage.removeItem('userIsStaff');
+          // localStorage.removeItem('userIsSuperuser');
+          // localStorage.removeItem('ferremasCart');
+          window.location.href = '../login.html';
+        });
+      }
+
+      // --- Lógica para Cargar Productos (Bodeguero) ---
+      const API_BASE_URL = 'http://127.0.0.1:8000';
+      const productosBodegueroContainer = document.getElementById('productosBodegueroContainer');
+
+      // --- Lógica del Modal de Producto ---
+      const productModal = document.getElementById('productModal');
+      const modalTitle = document.getElementById('modalTitle');
+      const btnCloseModal = document.getElementById('btnCloseModal'); // Selector para el botón de cerrar
+      const productForm = document.getElementById('productForm');
+      const btnNuevoProducto = document.getElementById('btnNuevoProducto');
+      const btnCancelModal = document.getElementById('btnCancelModal');
+      const productIdField = document.getElementById('productId');
+      const searchBodegueroInput = document.getElementById('searchBodegueroInput');
+      const categoryBodegueroFilter = document.getElementById('categoryBodegueroFilter');
+      const currentImageInfoEl = document.getElementById('currentImageInfo');
+      
+      let categoriasUnicas = new Set();
+      // Variables para paginación
+      let currentPageUrl = `${API_BASE_URL}/api/producto/`; // URL inicial
+      let nextPageUrl = null;
+      let previousPageUrl = null;
+      let totalProducts = 0;
+      let productsPerPage = 10; // Asumir un tamaño de página, o mejor obtenerlo de la API
+
+      function openModal(mode = 'create', product = null) {
+        productForm.reset();
+        productIdField.value = '';
+        currentImageInfoEl.classList.add('hidden'); // Ocultar info de imagen por defecto
+        // Limpiar el input de archivo para que no muestre el nombre del archivo anterior
+        const imagenInput = document.getElementById('imagen');
+        if (imagenInput) imagenInput.value = '';
+
+        if (mode === 'create') {
+          modalTitle.textContent = 'Crear Nuevo Producto';
+        } else if (mode === 'edit' && product) {
+          modalTitle.textContent = 'Editar Producto';
+          productIdField.value = product.id;
+          document.getElementById('nombre').value = product.nombre || '';
+          document.getElementById('descripcion').value = product.descripcion || '';
+          document.getElementById('precio').value = product.precio || '';
+          document.getElementById('cantidad').value = product.cantidad || '';
+          document.getElementById('categoria').value = product.categoria || '';
+          // No podemos pre-llenar un input type="file" con un valor.
+          // En su lugar, mostramos información sobre la imagen actual.
+          if (product.imagen) {
+            // Extraer solo el nombre del archivo de la URL completa
+            const imageName = product.imagen.split('/').pop().split('?')[0]; // Manejar posibles query params
+            currentImageInfoEl.textContent = `Imagen actual: ${imageName}`;
+            currentImageInfoEl.classList.remove('hidden');
+          }
+        }
+        productModal.classList.remove('hidden');
+      }
+      function closeModal() { productModal.classList.add('hidden'); }
+
+      async function cargarYRenderizarProductosBodeguero(url = currentPageUrl) {
+        if (!productosBodegueroContainer) return;
+        productosBodegueroContainer.innerHTML = '<p class="text-center text-gray-600 py-10 text-xl">Cargando productos...</p>';
+        currentPageUrl = url;
+        try {
+            const response = await fetch(url, {
+                 headers: { 'Authorization': `Token ${authToken}` } // authToken ya está definido globalmente
+            });
+
+            if (!response.ok) {
+                if (response.status === 401 || response.status === 403) {
+                    localStorage.clear(); // Limpiar todo por seguridad
+                    alert('Sesión expirada o no autorizado. Por favor, inicia sesión de nuevo.');
+                    window.location.href = '../login.html';
+                    return;
+                }
+                throw new Error(`Error HTTP: ${response.status}`);
+            }
+
+            const data = await response.json();
+            const productos = data.results || (Array.isArray(data) ? data : []);
+            
+            nextPageUrl = data.next;
+            previousPageUrl = data.previous;
+            totalProducts = data.count || productos.length;
+            if (productos.length > 0 && data.results) { // Solo actualizar si hay 'results' (paginación)
+                 productsPerPage = productos.length; 
+            } else if (productos.length > 0 && !data.results) { // Si no hay paginación, productsPerPage es el total
+                 productsPerPage = productos.length;
+            }
+
+
+            window.todosLosProductosGlobales = productos; 
+            
+            // Poblar filtros solo la primera vez que se carga la página inicial
+            // O si la URL no tiene parámetros de filtro (para evitar repoblar con datos filtrados)
+            // Idealmente, esto se haría con un fetch a un endpoint de categorías
+            if (url === `${API_BASE_URL}/api/producto/` || !url.includes('?')) {
+                 poblarFiltroCategorias(productos); 
+            }
+            renderizarProductosBodeguero(productos);
+            actualizarControlesPaginacion();
+
+        } catch (error) {
+            console.error('Error al cargar productos para bodeguero:', error);
+            productosBodegueroContainer.innerHTML = '<p class="text-center text-red-600 py-10 text-xl">Error al cargar productos. Intenta más tarde.</p>';
+            actualizarControlesPaginacion(); // Ocultar controles si hay error
+        }
+      }
+      
+      function actualizarControlesPaginacion() {
+        const paginationControls = document.getElementById('paginationControls');
+        const btnPrevPage = document.getElementById('btnPrevPage');
+        const btnNextPage = document.getElementById('btnNextPage');
+        const pageInfo = document.getElementById('pageInfo');
+
+        if (!paginationControls || !btnPrevPage || !btnNextPage || !pageInfo) return;
+
+        // Mostrar si hay más de una página o potencial para ello
+        if (totalProducts > 0 && (nextPageUrl || previousPageUrl || totalProducts > productsPerPage) ) { 
+            paginationControls.classList.remove('hidden');
+            
+            btnPrevPage.disabled = !previousPageUrl;
+            btnNextPage.disabled = !nextPageUrl;
+
+            let currentPageNum = 1;
+            // Intenta extraer el número de página de la URL actual o de las URLs de navegación
+            const currentUrlObj = new URL(currentPageUrl, API_BASE_URL); // Usar API_BASE_URL como base si currentPageUrl es relativa
+            const currentUrlParams = new URLSearchParams(currentUrlObj.search);
+            const pageParam = currentUrlParams.get('page');
+            if (pageParam) {
+                currentPageNum = parseInt(pageParam);
+            } else if (previousPageUrl) {
+                const prevUrlObj = new URL(previousPageUrl);
+                const prevParams = new URLSearchParams(prevUrlObj.search);
+                currentPageNum = (parseInt(prevParams.get('page')) || 0) + 1;
+            } else if (nextPageUrl) {
+                 // Si no hay previous pero sí next, y no hay page param, estamos en la página 1
+            }
+            
+            const totalPages = Math.ceil(totalProducts / productsPerPage);
+            pageInfo.textContent = `Página ${currentPageNum} de ${totalPages} (Total: ${totalProducts} productos)`;
+        } else {
+            paginationControls.classList.add('hidden');
+        }
+      }
+
+      function poblarFiltroCategorias(productos) {
+        if (!categoryBodegueroFilter) return;
+        
+        const categoriasActuales = new Set(Array.from(categoryBodegueroFilter.options).map(opt => opt.value).filter(val => val !== ""));
+        let nuevasCategoriasEncontradas = false;
+
+        productos.forEach(producto => {
+            if (producto.categoria) {
+                const categoriaTrimmed = producto.categoria.trim();
+                if (!categoriasActuales.has(categoriaTrimmed)) {
+                    categoriasUnicas.add(categoriaTrimmed);
+                    nuevasCategoriasEncontradas = true;
+                }
+            }
+        });
+        
+        // Solo repoblar si se encontraron nuevas categorías y el filtro no está ya lleno con todas
+        // Esto es una heurística, idealmente las categorías vendrían de un endpoint dedicado.
+        if (nuevasCategoriasEncontradas || categoryBodegueroFilter.options.length <= 1) {
+            // Limpiar opciones existentes excepto la primera ("Todas las Categorías")
+            while (categoryBodegueroFilter.options.length > 1) {
+                categoryBodegueroFilter.remove(1);
+            }
+            // Añadir todas las categorías únicas acumuladas
+            Array.from(categoriasUnicas).sort().forEach(categoria => {
+                const option = document.createElement('option');
+                option.value = categoria;
+                option.textContent = categoria.charAt(0).toUpperCase() + categoria.slice(1);
+                categoryBodegueroFilter.appendChild(option);
+            });
+        }
+      }
+
+      function renderizarProductosBodeguero(productosAMostrar) {
+        if (!productosBodegueroContainer) return;
+
+        if (!productosAMostrar || productosAMostrar.length === 0) {
+          productosBodegueroContainer.innerHTML = `
+            <p class="text-center text-gray-600 py-10 text-xl">No se encontraron productos que coincidan con los filtros.</p>
+          `;
+          return;
+        }
+
+        let tableHTML = `
+            <table class="min-w-full bg-white rounded-lg shadow overflow-hidden product-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Imagen</th>
+                        <th>Nombre</th>
+                        <th>Descripción</th>
+                        <th>Precio</th>
+                        <th>Stock</th>
+                        <th>Categoría</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        productosAMostrar.forEach(producto => {
+            const rawImageUrl = producto.imagen;
+            let imagenUrl;
+            if (rawImageUrl) {
+                // Construir la URL completa de la imagen
+                // Asegurarse de que la URL base termine en / y la ruta de la imagen no empiece con /
+                imagenUrl = (rawImageUrl.startsWith('http://') || rawImageUrl.startsWith('https://'))
+                            ? rawImageUrl
+                            : `${API_BASE_URL}${rawImageUrl.startsWith('/') ? '' : '/'}${rawImageUrl}`;
+            } else {
+                imagenUrl = "../../assets/placeholder_producto.png";
+            }
+            const descripcionCorta = producto.descripcion ? producto.descripcion.substring(0, 100) + (producto.descripcion.length > 100 ? '...' : '') : 'N/A';
+            const precioFormateado = producto.precio ? producto.precio.toLocaleString('es-CL') : 'N/A';
+            const stockMostrado = producto.cantidad !== undefined ? producto.cantidad : 'N/A'; // Usar 'cantidad' o 'stock' según tu modelo/API
+            const categoriaMostrada = producto.categoria || 'N/A';
+
+            tableHTML += `
+                <tr>
+                    <td>${producto.id || 'N/A'}</td>
+                    <td><img src="${imagenUrl}" alt="${producto.nombre || 'Producto'}" class="product-image" onerror="this.onerror=null;this.src='../../assets/placeholder_producto.png';"></td>
+                    <td>${producto.nombre || 'N/A'}</td>
+                    <td>${descripcionCorta}</td>
+                    <td>$${precioFormateado}</td>
+                    <td>${stockMostrado}</td>
+                    <td>${categoriaMostrada}</td>
+                    <td class="space-x-2 whitespace-nowrap flex items-center">
+                        <button data-product-id="${producto.id}" class="btn-edit-product text-blue-600 hover:text-blue-800 transition-colors text-sm font-medium inline-flex items-center gap-1">Editar</button>
+                        <button data-product-id="${producto.id}" class="btn-delete-product text-red-600 hover:text-red-800 transition-colors text-sm font-medium">Eliminar</button>
+                    </td>
+                </tr>
+            `;
+        });
+
+        tableHTML += `
+                </tbody>
+            </table>
+        `;
+        productosBodegueroContainer.innerHTML = tableHTML;
+      }
+
+      function aplicarFiltros() {
+        const terminoBusqueda = searchBodegueroInput.value.toLowerCase().trim();
+        const categoriaSeleccionada = categoryBodegueroFilter.value;
+
+        let urlFiltrada = `${API_BASE_URL}/api/producto/`;
+        const params = new URLSearchParams();
+        if (terminoBusqueda) params.append('search', terminoBusqueda);
+        if (categoriaSeleccionada) params.append('categoria', categoriaSeleccionada);
+        
+        if (params.toString()) {
+            urlFiltrada += `?${params.toString()}`;
+        }
+        // Al aplicar filtros, siempre volvemos a la primera página de los resultados filtrados
+        cargarYRenderizarProductosBodeguero(urlFiltrada); 
+      }
+
+      if (searchBodegueroInput) searchBodegueroInput.addEventListener('input', aplicarFiltros);
+      if (categoryBodegueroFilter) categoryBodegueroFilter.addEventListener('change', aplicarFiltros);
+
+      if (btnNuevoProducto) btnNuevoProducto.addEventListener('click', () => openModal('create'));
+      if (btnCancelModal) btnCancelModal.addEventListener('click', closeModal);
+      
+      if (btnCloseModal) btnCloseModal.addEventListener('click', closeModal);
+      const btnPrevPage = document.getElementById('btnPrevPage');
+      const btnNextPage = document.getElementById('btnNextPage');
+      if (btnPrevPage) btnPrevPage.addEventListener('click', () => { if (previousPageUrl) cargarYRenderizarProductosBodeguero(previousPageUrl); });
+      if (btnNextPage) btnNextPage.addEventListener('click', () => { if (nextPageUrl) cargarYRenderizarProductosBodeguero(nextPageUrl); });
+
+
+      if (productModal) {
+        productModal.addEventListener('click', (event) => {
+          if (event.target === productModal) {
+            closeModal();
+          }
+        });
+      }
+
+      if (productForm) {
+        productForm.addEventListener('submit', async function(event) {
+          event.preventDefault();
+          const formData = new FormData(productForm);
+          
+          // Convertir precio y cantidad a números antes de añadirlos a FormData
+          // Aunque DRF Serializers a menudo pueden manejar esto, es más seguro hacerlo aquí
+          const precioValue = formData.get('precio');
+          if (precioValue !== null) formData.set('precio', parseFloat(precioValue));
+          
+          const cantidadValue = formData.get('cantidad');
+           if (cantidadValue !== null) formData.set('cantidad', parseInt(cantidadValue, 10));
+
+          const imagenInput = document.getElementById('imagen');
+          const productId = productIdField.value;
+          
+          // Si estamos editando y no se seleccionó un nuevo archivo, elimina el campo 'imagen' de FormData
+          // para que el backend no intente procesar un campo de archivo vacío y borre la imagen existente.
+          if (productId && imagenInput && imagenInput.files.length === 0) {
+              formData.delete('imagen');
+          }
+
+          let url = `${API_BASE_URL}/api/producto/`;
+          let method = 'POST';
+
+          if (productId) {
+            url += `${productId}/`;
+            method = 'PUT'; // O 'PATCH' si tu API soporta PATCH para actualizaciones parciales
+          }
+
+          try {
+            const response = await fetch(url, {
+              method: method,
+              // *** IMPORTANTE: NO establecer Content-Type para FormData ***
+              // El navegador lo establecerá automáticamente con el boundary correcto
+              headers: { 'Authorization': `Token ${authToken}` }, // authToken ya está definido globalmente
+              body: formData // Enviar el objeto FormData directamente
+            });
+
+            if (!response.ok) {
+              let errorData;
+              const contentType = response.headers.get("content-type");
+              if (contentType && contentType.indexOf("application/json") !== -1) {
+                errorData = await response.json();
+              } else {
+                errorData = await response.text();
+              }
+              let errorMessage = `Error ${response.status}: ${response.statusText}. `;
+              if (errorData && typeof errorData === 'object' && !(errorData instanceof String)) {
+                // Intenta formatear errores de validación de DRF
+                errorMessage += Object.entries(errorData).map(([key, value]) => {
+                    const fieldName = key.charAt(0).toUpperCase() + key.slice(1); // Capitalizar nombre del campo
+                    const errorText = Array.isArray(value) ? value.join(', ') : value;
+                    return `${fieldName}: ${errorText}`;
+                }).join('; ');
+              } else if (typeof errorData === 'string') {
+                errorMessage += `Detalle: ${errorData.substring(0, 200)}...`;
+              }
+              throw new Error(errorMessage);
+            }
+            showToast(`Producto ${productId ? 'actualizado' : 'creado'} exitosamente.`, 'success');
+            closeModal();
+            // Cargar la página actual después de crear/editar para mantener la paginación y filtros
+            cargarYRenderizarProductosBodeguero(currentPageUrl); 
+          } catch (error) {
+            console.error(`Error al ${productId ? 'actualizar' : 'crear'} producto:`, error);
+            showToast(error.message || `Error al ${productId ? 'actualizar' : 'crear'} producto.`, 'error');
+          }
+        });
+      }
+
+      if (productosBodegueroContainer) {
+        productosBodegueroContainer.addEventListener('click', async function(event) {
+          const target = event.target;
+          const productId = target.dataset.productId;
+
+          if (target.classList.contains('btn-edit-product')) {
+            // Para editar, buscamos el producto en la lista de la página actual
+            const productoAEditar = (Array.isArray(window.todosLosProductosGlobales) ? window.todosLosProductosGlobales : []).find(p => p.id == productId);
+            if (productoAEditar) {
+              openModal('edit', productoAEditar);
+            } else {
+              // Si el producto no está en la página actual (ej. si navegamos y luego intentamos editar),
+              // podríamos hacer un fetch individual para obtener sus datos completos.
+              // Por ahora, mostramos un error simple.
+              showToast('Error: No se encontraron los datos del producto para editar en la página actual.', 'error');
+              console.error(`Producto con ID ${productId} no encontrado en la lista de la página actual.`);
+            }
+          } else if (target.classList.contains('btn-delete-product')) {
+            if (confirm(`¿Estás seguro de que deseas eliminar el producto ID ${productId}?`)) {
+             try {
+                const response = await fetch(`${API_BASE_URL}/api/producto/${productId}/`, {
+                  method: 'DELETE',
+                  headers: { 'Authorization': `Token ${authToken}` } // authToken ya está definido globalmente
+                });
+                if (response.status === 204) {
+                  showToast(`Producto ID ${productId} eliminado exitosamente.`, 'success');
+                  // Recargar la página actual para reflejar la eliminación
+                  cargarYRenderizarProductosBodeguero(currentPageUrl); 
+                } else if (!response.ok) {
+                  let errorDetail = `Error ${response.status}: ${response.statusText}`;
+                  try {
+                    const errorData = await response.json();
+                    errorDetail += ` - ${JSON.stringify(errorData)}`;
+                  } catch (e) {
+                    const textError = await response.text();
+                    errorDetail += ` - ${textError.substring(0,100)}...`;
+                  }
+                  throw new Error(errorDetail);
+                }
+              } catch (error) {
+                console.error(`Error al eliminar producto ID ${productId}:`, error);
+                showToast(error.message || `Error al eliminar producto ID ${productId}.`, 'error');
+              }
+            }
+          }
+        });
+      }
+      // Carga inicial de productos
+      cargarYRenderizarProductosBodeguero();
+    });
+
+    // --- Lógica para Toasts/Notificaciones ---
+    const toastContainer = document.getElementById('toast-container');
+    function showToast(message, type = 'info', duration = 4000) {
+        if (!toastContainer) {
+            console.warn("Toast container not found!");
+            alert(`${type.toUpperCase()}: ${message}`);
+            return;
+        }
+        const toast = document.createElement('div');
+        toast.className = `p-4 mb-3 rounded-lg shadow-lg text-white opacity-0 transition-all duration-500 ease-out transform translate-x-full`;
+        if (type === 'success') toast.classList.add('bg-green-500');
+        else if (type === 'error') toast.classList.add('bg-red-500');
+        else if (type === 'info') toast.classList.add('bg-blue-500');
+        else toast.classList.add('bg-gray-700');
+        toast.textContent = message;
+        toastContainer.appendChild(toast);
+        requestAnimationFrame(() => {
+          toast.style.opacity = '1';
+          toast.style.transform = 'translateX(0)';
+        });
+        setTimeout(() => {
+          toast.style.opacity = '0';
+          toast.style.transform = 'translateX(100%)';
+          setTimeout(() => toast.remove(), 500);
+        }, duration);
+    }
+  </script>
+</body>
+</html>
+

@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FERREMAS - Gestión de Usuarios</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body { font-family: 'Roboto', sans-serif; }
+        .modal { display: none; }
+        .modal.active { display: flex; }
+        /* Estilos para la tabla y paginación (similares a los de bodeguero_inventario.html) */
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #f2f2f2; font-weight: bold; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        tr:hover { background-color: #f1f1f1; }
+        .pagination-controls button { margin: 0 5px; padding: 8px 12px; }
+        .pagination-controls button.disabled { cursor: not-allowed; opacity: 0.5; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+    <!-- Header (similar al de bodeguero) -->
+    <header class="bg-orange-600 text-white shadow-lg sticky top-0 z-50">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold">FERREMAS - Panel de Administración</h1>
+            <nav class="space-x-4">
+                <a href="admin_dashboard.html" class="hover:text-orange-200">Dashboard</a> <!-- Asumiendo que tendrás un dashboard -->
+                <a href="admin_usuarios.html" class="font-semibold text-orange-200">Gestión de Usuarios</a>
+                <button id="logoutButton" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
+                    Cerrar Sesión
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container mx-auto mt-8 p-6 bg-white shadow-xl rounded-lg">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-3xl font-semibold text-orange-600">Gestión de Usuarios</h2>
+            <button id="openCreateUserModal" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg shadow">
+                <i class="fas fa-plus mr-2"></i>Crear Nuevo Usuario
+            </button>
+        </div>
+
+        <!-- Tabla de Usuarios -->
+        <div class="overflow-x-auto shadow-md rounded-lg">
+            <table class="min-w-full bg-white">
+                <thead class="bg-gray-800 text-white">
+                    <tr>
+                        <th class="py-3 px-4 uppercase font-semibold text-sm">ID</th>
+                        <th class="py-3 px-4 uppercase font-semibold text-sm">Email (Username)</th>
+                        <th class="py-3 px-4 uppercase font-semibold text-sm">Nombre</th>
+                        <th class="py-3 px-4 uppercase font-semibold text-sm">Apellido</th>
+                        <th class="py-3 px-4 uppercase font-semibold text-sm">Rol</th>
+                        <th class="py-3 px-4 uppercase font-semibold text-sm">Activo</th>
+                        <th class="py-3 px-4 uppercase font-semibold text-sm">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTableBody" class="text-gray-700">
+                    <!-- Las filas de usuarios se insertarán aquí por JavaScript -->
+                    <tr><td colspan="7" class="text-center py-10">Cargando usuarios...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Modal para Crear/Editar Usuario -->
+    <div id="userModal" class="modal fixed inset-0 bg-gray-900 bg-opacity-75 items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-2xl p-8 w-full max-w-2xl transform transition-all scale-95 opacity-0 duration-300 ease-out modal-content">
+            <div class="flex justify-between items-center mb-6">
+                <h3 id="modalTitle" class="text-2xl font-semibold text-orange-600">Crear Nuevo Usuario</h3>
+                <button id="closeUserModal" class="text-gray-600 hover:text-gray-900 text-2xl">&times;</button>
+            </div>
+            <form id="userForm" class="space-y-4">
+                <input type="hidden" id="userId">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="userEmail" class="block text-sm font-medium text-gray-700">Email (será el username)</label>
+                        <input type="email" id="userEmail" name="email" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="userPassword" class="block text-sm font-medium text-gray-700">Contraseña</label>
+                        <input type="password" id="userPassword" name="password" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm" placeholder="Mínimo 8 caracteres">
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="userFirstName" class="block text-sm font-medium text-gray-700">Nombre</label>
+                        <input type="text" id="userFirstName" name="first_name" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="userLastName" class="block text-sm font-medium text-gray-700">Apellido</label>
+                        <input type="text" id="userLastName" name="last_name" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm">
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center"> <!-- Ajustado a 3 columnas -->
+                    <div class="flex items-center">
+                        <input id="userIsStaff" name="is_staff" type="checkbox" class="h-4 w-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500">
+                        <label for="userIsStaff" class="ml-2 block text-sm text-gray-900">Es Staff</label>
+                    </div>
+                    <div class="flex items-center">
+                        <input id="userIsSuperuser" name="is_superuser" type="checkbox" class="h-4 w-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500">
+                        <label for="userIsSuperuser" class="ml-2 block text-sm text-gray-900">Es Superusuario</label>
+                    </div>
+                    <div class="flex items-center">
+                        <input id="userIsActive" name="is_active" type="checkbox" class="h-4 w-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500" checked>
+                        <label for="userIsActive" class="ml-2 block text-sm text-gray-900">Usuario Activo</label>
+                    </div>
+                </div>
+                <div class="pt-4 flex justify-end space-x-3">
+                    <button type="button" id="cancelUserForm" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg">Cancelar</button>
+                    <button type="submit" id="saveUserButton" class="bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded-lg">Guardar Usuario</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const API_BASE_URL = 'http://127.0.0.1:8000';
+            let token = localStorage.getItem('authToken'); 
+            const userDataString = localStorage.getItem('userData');
+            let userData = null;
+
+            // 1. Verificación robusta del token
+            if (!token || typeof token !== 'string' || token.trim() === '' || token === 'null' || token === 'undefined') {
+                console.error('Token inválido o no encontrado en localStorage:', token);
+                alert('Acceso denegado (token inválido). Por favor, inicia sesión.');
+                localStorage.removeItem('authToken'); 
+                localStorage.removeItem('userData');
+                window.location.href = '../login.html';
+                return; 
+            }
+
+            // 2. Verificación y parseo de userData
+            if (!userDataString || userDataString === 'null' || userDataString === 'undefined') {
+                console.error('userDataString inválido o no encontrado en localStorage:', userDataString);
+                alert('Acceso denegado (datos de usuario no encontrados). Por favor, inicia sesión.');
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('userData');
+                window.location.href = '../login.html';
+                return; 
+            }
+
+            try {
+                userData = JSON.parse(userDataString);
+            } catch (e) {
+                console.error("Error al parsear userData:", e, "userDataString:", userDataString);
+                alert('Acceso denegado (error en datos de usuario). Por favor, inicia sesión.');
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('userData');
+                window.location.href = '../login.html';
+                return; 
+            }
+
+            // 3. Verificación del rol
+            if (!userData || !userData.is_staff) { // Solo los staff (admin/superusuario) pueden acceder
+                console.error('Usuario no es staff. userData:', userData);
+                alert('Acceso denegado. Debes ser administrador para ver esta página.');
+                window.location.href = '../login.html'; 
+                return;
+            }
+
+            console.log('Acceso permitido. Token:', token, 'UserData:', userData);
+
+            const usersTableBody = document.getElementById('usersTableBody');
+            const userForm = document.getElementById('userForm');
+
+            const logoutButton = document.getElementById('logoutButton');
+            if (logoutButton) {
+                logoutButton.addEventListener('click', function() {
+                    localStorage.removeItem('authToken');
+                    localStorage.removeItem('userData');
+                    window.location.href = '../login.html';
+                });
+            }
+
+            const userModal = document.getElementById('userModal');
+            const openCreateUserModalButton = document.getElementById('openCreateUserModal');
+            const closeUserModalButton = document.getElementById('closeUserModal');
+            const cancelUserFormButton = document.getElementById('cancelUserForm');
+            const modalContent = userModal.querySelector('.modal-content');
+
+            function openModal(mode = 'create', user = null) {
+                userModal.classList.add('active');
+                setTimeout(() => { 
+                    modalContent.classList.remove('scale-95', 'opacity-0');
+                    modalContent.classList.add('scale-100', 'opacity-100');
+                }, 50);
+                
+                userForm.reset();
+                document.getElementById('userId').value = ''; 
+                document.getElementById('userIsActive').checked = true; 
+                document.getElementById('userIsStaff').checked = false;
+                document.getElementById('userIsSuperuser').checked = false;
+                document.getElementById('userPassword').placeholder = "Mínimo 8 caracteres";
+                document.getElementById('userPassword').required = false; // No requerido por defecto
+
+                if (mode === 'create') {
+                    document.getElementById('modalTitle').textContent = 'Crear Nuevo Usuario';
+                    document.getElementById('userPassword').required = true; // Contraseña obligatoria al crear
+                    document.getElementById('userPassword').placeholder = "Mínimo 8 caracteres (Obligatorio)";
+                } else if (mode === 'edit' && user) {
+                    document.getElementById('modalTitle').textContent = 'Editar Usuario';
+                    document.getElementById('userId').value = user.id;
+                    document.getElementById('userEmail').value = user.email;
+                    document.getElementById('userFirstName').value = user.first_name || '';
+                    document.getElementById('userLastName').value = user.last_name || '';
+                    document.getElementById('userIsStaff').checked = user.is_staff;
+                    document.getElementById('userIsSuperuser').checked = user.is_superuser;
+                    document.getElementById('userIsActive').checked = user.is_active;
+                    document.getElementById('userPassword').placeholder = "Dejar en blanco para no cambiar";
+                }
+            }
+
+            function closeModal() {
+                modalContent.classList.add('scale-95', 'opacity-0');
+                modalContent.classList.remove('scale-100', 'opacity-100');
+                setTimeout(() => { 
+                    userModal.classList.remove('active');
+                }, 300);
+            }
+
+            if (openCreateUserModalButton) openCreateUserModalButton.addEventListener('click', () => openModal('create'));
+            if (closeUserModalButton) closeUserModalButton.addEventListener('click', closeModal);
+            if (cancelUserFormButton) cancelUserFormButton.addEventListener('click', closeModal);
+
+            async function fetchWithAuth(url, options = {}) {
+                console.log('fetchWithAuth - Token a usar:', token); 
+                if (!token || typeof token !== 'string' || token.trim() === '' || token === 'null' || token === 'undefined') {
+                    console.error("fetchWithAuth llamado con token inválido:", token);
+                    // Podríamos intentar recargar el token o redirigir
+                    alert("Error de autenticación. Por favor, intente iniciar sesión de nuevo.");
+                    localStorage.removeItem('authToken');
+                    localStorage.removeItem('userData');
+                    window.location.href = '../login.html';
+                    throw new Error("Autenticación requerida. Token no disponible o inválido.");
+                }
+                const headers = {
+                    'Authorization': `Token ${token}`,
+                    'Content-Type': 'application/json',
+                    ...options.headers,
+                };
+                const response = await fetch(url, { ...options, headers });
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ detail: response.statusText }));
+                    const errorMessage = errorData.detail || Object.entries(errorData).map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`).join('; ');
+                    
+                    if (response.status === 401 || response.status === 403) { // Token inválido o permisos insuficientes
+                        alert(`Error de autenticación/autorización (${response.status}): ${errorMessage}. Redirigiendo al login.`);
+                        localStorage.removeItem('authToken');
+                        localStorage.removeItem('userData');
+                        window.location.href = '../login.html';
+                    }
+                    throw new Error(`Error ${response.status}: ${errorMessage}`);
+                }
+                if (response.status === 204) return null; 
+                return response.json();
+            }
+
+            async function loadUsers() {
+                try {
+                    const data = await fetchWithAuth(`${API_BASE_URL}/api/auth/admin/users/`);
+                    // Asumiendo que la API para admin/users no está paginada por defecto o devuelve todos los usuarios
+                    // Si estuviera paginada, sería data.results
+                    renderUsersTable(Array.isArray(data) ? data : (data.results || [])); 
+                } catch (error) {
+                    console.error('Error al cargar usuarios:', error);
+                    usersTableBody.innerHTML = `<tr><td colspan="7" class="text-center py-10 text-red-500">Error al cargar usuarios: ${error.message}</td></tr>`;
+                }
+            }
+
+            function renderUsersTable(users) {
+                usersTableBody.innerHTML = ''; 
+                if (!users || users.length === 0) {
+                    usersTableBody.innerHTML = '<tr><td colspan="7" class="text-center py-10">No se encontraron usuarios.</td></tr>';
+                    return;
+                }
+                users.forEach(user => {
+                    const row = `
+                        <tr data-user-id="${user.id}">
+                            <td class="py-3 px-4">${user.id}</td>
+                            <td class="py-3 px-4">${user.email}</td>
+                            <td class="py-3 px-4">${user.first_name || 'N/A'}</td>
+                            <td class="py-3 px-4">${user.last_name || 'N/A'}</td>
+                            <td class="py-3 px-4">
+                                ${user.is_superuser ? '<span class="px-2 py-1 font-semibold leading-tight text-red-700 bg-red-100 rounded-full">Superadmin</span>' : ''}
+                                ${user.is_staff && !user.is_superuser ? '<span class="px-2 py-1 font-semibold leading-tight text-green-700 bg-green-100 rounded-full">Staff</span>' : ''}
+                                ${!user.is_staff && !user.is_superuser ? '<span class="px-2 py-1 font-semibold leading-tight text-blue-700 bg-blue-100 rounded-full">Cliente</span>' : ''}
+                            </td>
+                            <td class="py-3 px-4">${user.is_active ? '<span class="text-green-500 font-bold">Sí</span>' : '<span class="text-red-500 font-bold">No</span>'}</td>
+                            <td class="py-3 px-4">
+                                <button class="edit-user-btn text-blue-600 hover:text-blue-800 mr-2" title="Editar" data-user='${JSON.stringify(user).replace(/'/g, "&apos;")}'><i class="fas fa-edit"></i></button>
+                                <button class="delete-user-btn text-red-600 hover:text-red-800" title="Eliminar" data-user-id="${user.id}"><i class="fas fa-trash-alt"></i></button>
+                            </td>
+                        </tr>
+                    `;
+                    usersTableBody.innerHTML += row;
+                });
+
+                // Añadir event listeners a los nuevos botones
+                document.querySelectorAll('.edit-user-btn').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const userData = JSON.parse(this.dataset.user.replace(/&apos;/g, "'"));
+                        openModal('edit', userData);
+                    });
+                });
+                document.querySelectorAll('.delete-user-btn').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const userIdToDelete = this.dataset.userId;
+                        if (confirm(`¿Estás seguro de que deseas eliminar al usuario ID ${userIdToDelete}?`)) {
+                            deleteUser(userIdToDelete);
+                        }
+                    });
+                });
+            }
+
+            userForm.addEventListener('submit', async function(event) {
+                event.preventDefault();
+                const saveButton = document.getElementById('saveUserButton');
+                saveButton.disabled = true;
+                saveButton.textContent = 'Guardando...';
+
+                const userId = document.getElementById('userId').value;
+                const formData = {
+                    email: document.getElementById('userEmail').value,
+                    // username: document.getElementById('userEmail').value, // El backend usa email como username
+                    password: document.getElementById('userPassword').value,
+                    first_name: document.getElementById('userFirstName').value,
+                    last_name: document.getElementById('userLastName').value,
+                    is_staff: document.getElementById('userIsStaff').checked,
+                    is_superuser: document.getElementById('userIsSuperuser').checked,
+                    is_active: document.getElementById('userIsActive').checked,
+                };
+
+                let url = `${API_BASE_URL}/api/auth/admin/users/`;
+                let method = 'POST';
+
+                if (userId) { // Editando
+                    url += `${userId}/`;
+                    method = 'PUT'; // O PATCH si tu backend lo soporta y quieres enviar solo campos modificados
+                    if (!formData.password) { // Si la contraseña está vacía al editar, no la envíes
+                        delete formData.password;
+                    }
+                } else { // Creando
+                    if (!formData.password) {
+                        alert('La contraseña es obligatoria para crear un nuevo usuario.');
+                        saveButton.disabled = false;
+                        saveButton.textContent = 'Guardar Usuario';
+                        return;
+                    }
+                }
+
+                try {
+                    await fetchWithAuth(url, { method: method, body: JSON.stringify(formData) });
+                    closeModal();
+                    loadUsers(); 
+                    alert(`Usuario ${userId ? 'actualizado' : 'creado'} exitosamente.`);
+                } catch (error) {
+                    alert(`Error al guardar usuario: ${error.message}`);
+                } finally {
+                    saveButton.disabled = false;
+                    saveButton.textContent = 'Guardar Usuario';
+                }
+            });
+
+            async function deleteUser(userIdToDelete) {
+                try {
+                    await fetchWithAuth(`${API_BASE_URL}/api/auth/admin/users/${userIdToDelete}/`, { method: 'DELETE' });
+                    loadUsers();
+                    alert(`Usuario ID ${userIdToDelete} eliminado exitosamente.`);
+                } catch (error) {
+                    alert(`Error al eliminar usuario: ${error.message}`);
+                }
+            }
+            
+            console.log('Llamando a loadUsers(). Token actual:', token); 
+            loadUsers();
+        });
+    </script>
+</body>
+</html>
