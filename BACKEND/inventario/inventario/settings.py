@@ -146,6 +146,9 @@ CORS_ALLOW_ALL_ORIGINS = True # <--- Añade esta línea al final del archivo
 
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 10  # O el número de productos que quieras por página
+    'PAGE_SIZE': 10,  # O el número de productos que quieras por página
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication', # Opcional, pero útil para el browsable API
+    ]
 }
-
